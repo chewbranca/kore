@@ -332,16 +332,8 @@ function lfg.init(conf, args)
     lfg.dbg("GOT ARGS:")
     lfg.pp(args)
 
-    for k, arg in pairs(args) do
-        lfg.dbg("GOT ARG: %s ==> %s", k, arg)
-        if arg == "--server" then
-            server = lfg.run_server()
-        end
-
-        if arg == "--client" then
-            client = lfg.run_client()
-        end
-    end
+    if args.server then server = lfg.run_server() end
+    if args.client then client = lfg.run_client(args.host) end
 
     if conf then
         for k, v in pairs(conf) do lfg.conf[k] = v end
@@ -742,10 +734,9 @@ function lfg.run_server()
 end
               
 
-function lfg.run_client()
-    lfg.dbg("STARTING CLIENT TO...")
-    local host = "localhost"
-    local client = sock.newClient(host, PORT)
+function lfg.run_client(host)
+    lfg.dbg("STARTING CLIENT CONNECTION TO %s...", host)
+    local client = sock.newClient("127.0.0.1", PORT)
     -- TODO: switch to schemas for communication as per Server:setSchema
 
     client:on("connect", function(msg)
