@@ -1,7 +1,12 @@
 (local lfg (require "lfg"))
 (local argparse (require "argparse"))
+(local game-server (require "server"))
+(local game-client (require "client"))
 
 (var player nil)
+
+(var client nil)
+(var server nil)
 
 (defn love.errorhandler [msg] (print (fennel.traceback msg 3)))
 
@@ -11,10 +16,18 @@
   (parser.flag parser "--server" "Host a server")
   (parser.flag parser "--client" "Run a client")
   (parser.option parser "--host" "Server host to connect to", "localhost")
+  (parser.option parser "--port" "Server port to connect to", game-server.PORT)
 
   (local pargs (parser.parse parser))
   (lfg.dbg "GOT PARSED ARGS: ")
   (lfg.pp pargs)
+
+  (if pargs.server (set server (game-server.run-server pargs.port)))
+  (if pargs.client (set client (game-client.run-client pargs.host pargs.port)))
+  (print "SERVER IS:")
+  (pp server)
+  (print "CLIENT IS:")
+  (pp client)
 
   (assert (lfg.init {:map_file "map_lfg_demo.lua"} pargs))
   (lfg.dbg "Welcome to Kore!")
@@ -36,7 +49,15 @@
   (lfg.draw))
 
 (defn love.update [dt]
+  (if server (: server :update))
+  (if client (: client :update))
   (lfg.update dt))
 
 (defn love.mousemoved [...] (lfg.mousemoved ...))
-(defn love.mousepressed [...] (lfg.mousepressed ...))
+
+(defn love.mousepressed [m-x m-y button]
+  (let [p-x lfg.player.x
+        p-y lfg.player.y
+        (atype action) (game-client.mousepressed p-x p-y m-x m-y button)]
+    (if (= atype :attack-melee) (lfg.do_attack_melee action)
+        (= atype :attack-spell) (lfg.do_attack_spell action))))
