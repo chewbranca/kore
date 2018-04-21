@@ -736,7 +736,7 @@ end
 
 function lfg.run_client(host)
     lfg.dbg("STARTING CLIENT CONNECTION TO %s...", host)
-    local client = sock.newClient("127.0.0.1", PORT)
+    local client = sock.newClient(host, PORT)
     -- TODO: switch to schemas for communication as per Server:setSchema
 
     client:on("connect", function(msg)
