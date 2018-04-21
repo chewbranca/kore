@@ -12,7 +12,6 @@ math.randomseed( os.time() )
 
 local lfg = {
     world_file = "world.dat",
-    map_file = "map.lua",
     map = nil,
     player_obj = nil,
     m_objects = {},
@@ -329,11 +328,9 @@ function lfg.init(conf, args)
     args = args or {}
 
     assert(type(args) == "table")
-    lfg.dbg("GOT ARGS:")
-    lfg.pp(args)
 
-    if args.server then server = lfg.run_server() end
-    if args.client then client = lfg.run_client(args.host) end
+    --if args.server then server = lfg.run_server() end
+    --if args.client then client = lfg.run_client(args.host) end
 
     if conf then
         for k, v in pairs(conf) do lfg.conf[k] = v end
@@ -428,8 +425,8 @@ end
 function lfg.update(dt)
     lfg.map:update(dt)
 
-    if server then server:update() end
-    if client then client:update() end
+    --if server then server:update() end
+    --if client then client:update() end
 end
 
 
@@ -488,6 +485,32 @@ local resetstand = function()
     lfg.player.state = STATES.stand
     lfg.player:set_animation(lfg.player.cdir, lfg.player.state)
 end
+
+
+function lfg.do_attack_melee(action)
+    lfg.player.state = STATES.swing
+    lfg.player:set_animation(lfg.player.cdir, lfg.player.state)
+    lfg.player.am.onLoop = resetstand
+end
+
+
+function lfg.do_attack_spell(action)
+    local pjt = lfg.Projectile:new({
+            x      = action.x,
+            y      = action.y,
+            dx     = action.dx,
+            dy     = action.dy,
+            am     = lfg.player.spell.ams[lfg.player.cdir].power,
+            ox     = lfg.player.spell.as.ox,
+            oy     = lfg.player.spell.as.oy,
+            sprite = lfg.player.spell.sprite,
+    })
+
+    lfg.player.state = STATES.cast
+    lfg.player:set_animation(lfg.player.cdir, lfg.player.state)
+    lfg.player.am.onLoop = resetstand
+end
+
 
 function lfg.mousepressed(m_x, m_y, button)
     local x = math.floor(love.graphics.getWidth() / 2)
@@ -630,6 +653,7 @@ function lfg.Projectile:new(p)
 
     setmetatable(self, Projectile_mt)
     table.insert(projectiles_, self)
+    if client then lfg.send_projectile(self) end
 
     return self
 end
@@ -695,6 +719,24 @@ function lfg.announce_player(player)
             c:send("player_connected", player)
         end
     end
+end
+
+
+function lfg.send_projectile(p)
+    assert(client)
+    client:send("send_projectile", {
+        x = p.x,
+        y = p.y,
+        dx = p.dx,
+        dy = p.dy,
+
+        ox = p.ox or 0,
+        oy = p.oy or 0,
+        speed = p.speed or DEFAULT_PJT_SPEED,
+
+        age = 0,
+        max_age = 5,
+    })
 end
 
 
