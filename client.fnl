@@ -44,11 +44,11 @@
     (if (= button 1)
         (let [atype :attack-melee
               action {:x p-x :y p-y :dx n-dx :dy n-dy :type atype}]
-          (values :attack-melee action))
+          (values atype action))
         (= button 2)
         (let [atype :attack-spell
               action {:x p-x :y p-y :dx n-dx :dy n-dy :type atype}]
-          (values :attack-spell action)))))
+          (values atype action)))))
 
 
 (defn send-client-action [client action]
