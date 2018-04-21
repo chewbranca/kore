@@ -2,6 +2,8 @@
 
 (local lg love.graphics)
 
+(local lfg (require "lfg"))
+
 
 (defn run-client [host port]
   (log "STARTING CLIENT CONNECTION")
@@ -9,9 +11,17 @@
     (: client :on "connect"
        (fn [data] (log "Successfully connected to server: (%s)" data)))
     (: client :on "welcome"
-       (fn [msg] (log "Uh oh... got eere hello from server: %s" msg)))
+       (fn [data] (log "Uh oh... got eere hello from server: %s" data.msg)))
     (: client :on "disconnect"
        (fn [data] (log "[ERROR] DISCONNECTED: %s" data)))
+    (: client :on "attack-melee"
+       (fn [action]
+         (log "GOT ATTACK-MELEE COMMAND: %s" (ppsl action))
+         (lfg.do_attack_melee action)))
+    (: client :on "attack-spell"
+       (fn [action]
+         (log "GOT ATTACK-SPELL COMMAND: %s" (ppsl action))
+         (lfg.do_attack_spell action)))
 
     (: client :connect)
     client))
@@ -32,11 +42,23 @@
         n-dx (/ e-dx distance)
         n-dy (/ e-dy distance)]
     (if (= button 1)
-        (let [action {:x p-x :y p-y :dx n-dx :dy n-dy :type :melee}]
+        (let [atype :attack-melee
+              action {:x p-x :y p-y :dx n-dx :dy n-dy :type atype}]
           (values :attack-melee action))
         (= button 2)
-        (let [action {:x p-x :y p-y :dx n-dx :dy n-dy :type :spell}]
+        (let [atype :attack-spell
+              action {:x p-x :y p-y :dx n-dx :dy n-dy :type atype}]
           (values :attack-spell action)))))
 
 
-{:run-client run-client :mousepressed mousepressed}
+(defn send-client-action [client action]
+  (assert client)
+  (set action.clid client.uuid)
+  (log "sending client action")
+  (: client :send action.type action))
+
+{
+ :run-client run-client
+ :send-client-action send-client-action
+ :mousepressed mousepressed
+}

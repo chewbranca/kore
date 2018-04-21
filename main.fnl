@@ -3,6 +3,8 @@
 (local game-server (require "server"))
 (local game-client (require "client"))
 
+(local use_lfg false)
+
 (var player nil)
 
 (var client nil)
@@ -55,9 +57,27 @@
 
 (defn love.mousemoved [...] (lfg.mousemoved ...))
 
+(defn do-attack-melee [action]
+  (assert (= :attack-melee action.type))
+  (if use_lfg
+      (lfg.do_attack_melee action)
+      :else
+      (when client
+        (game-client.send-client-action client action))))
+
+
+(defn do-attack-spell [action]
+  (assert (= :attack-spell action.type))
+  (if use_lfg
+      (lfg.do_attack_spell action)
+      :else
+      (when client
+        (game-client.send-client-action client action))))
+
+
 (defn love.mousepressed [m-x m-y button]
   (let [p-x lfg.player.x
         p-y lfg.player.y
         (atype action) (game-client.mousepressed p-x p-y m-x m-y button)]
-    (if (= atype :attack-melee) (lfg.do_attack_melee action)
-        (= atype :attack-spell) (lfg.do_attack_spell action))))
+    (if (= atype :attack-melee) (do-attack-melee action)
+        (= atype :attack-spell) (do-attack-spell action))))
