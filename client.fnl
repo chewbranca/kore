@@ -3,25 +3,49 @@
 (local lg love.graphics)
 
 (local lfg (require "lfg"))
+(local entity (require "entity"))
 
 
-(defn run-client [host port]
+(defn run-client [host port bootstrap]
   (log "STARTING CLIENT CONNECTION")
-  (let [client (sock.newClient host port)]
+  (let [client (sock.newClient host port)
+        client-players {}
+        players {}]
     (: client :on "connect"
        (fn [data] (log "Successfully connected to server: (%s)" data)))
+
     (: client :on "welcome"
-       (fn [data] (log "Uh oh... got eere hello from server: %s" data.msg)))
+       (fn [data]
+         (log "Uh oh... got eere hello from server: %s" data.msg)
+         (set client.luuid data.uuid)
+         (bootstrap)))
+
     (: client :on "disconnect"
        (fn [data] (log "[ERROR] DISCONNECTED: %s" data)))
+
     (: client :on "attack-melee"
        (fn [action]
-         (log "GOT ATTACK-MELEE COMMAND: %s" (ppsl action))
          (lfg.do_attack_melee action)))
+
     (: client :on "attack-spell"
        (fn [action]
-         (log "GOT ATTACK-SPELL COMMAND: %s" (ppsl action))
          (lfg.do_attack_spell action)))
+
+    (: client :on "announce-player"
+       (fn [data]
+         (let [ent (entity.create-player-entity data)
+               layer (. lfg.map.layers "KoreEntities")]
+           (tset client-players data.clid ent)
+           (entity.add-entity layer ent))))
+
+    (: client :on "player-update"
+       (fn [data]
+         (let [player (. client-players data.clid)]
+           ;; TODO better handle case of local player
+           ;; issue being the local player isn't in client-players
+           (when player
+             (set player.x data.x)
+             (set player.y data.y)))))
 
     (: client :connect)
     client))
@@ -53,12 +77,33 @@
 
 (defn send-client-action [client action]
   (assert client)
-  (set action.clid client.uuid)
-  (log "sending client action")
+  (set action.clid client.luuid)
   (: client :send action.type action))
+
+
+(defn announce-self [client player]
+  (let [action {:x player.x
+                :y player.y
+                :ox player.ox
+                :oy player.oy
+                :name player.name
+                :char_name player.char.name
+                :spell_name player.obj.spell.name ;; TODO: should be able to get player.spell
+                :type :announce-self
+                :clid client.luuid
+               }]
+    (send-client-action client action)))
+
+
+(defn send-player-state [client player]
+  (assert client)
+  (: client :send :send-player-state (entity.serializable-player player)))
+
 
 {
  :run-client run-client
  :send-client-action send-client-action
  :mousepressed mousepressed
+ :announce-self announce-self
+ :send-player-state send-player-state
 }

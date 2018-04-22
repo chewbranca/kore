@@ -3,6 +3,8 @@
 fennel = require("fennel")
 lume = require("lume")
 
+lfg = require("lfg")
+
 table[("insert")](package[("loaders")], fennel[("searcher")])
 pps = function(x)
    return require("serpent").block(x, {maxlevel=8,maxnum=64,

@@ -62,6 +62,37 @@ local D_SE = {x=1,  y=1}  -- row 6
 local D_S  = {x=0,  y=1}  -- row 7
 local D_SW = {x=-1, y=1}  -- row 8
 
+lfg.D_W = D_W
+lfg.D_NW = D_NW
+lfg.D_N = D_N
+lfg.D_NE = D_NE
+lfg.D_E = D_E
+lfg.D_SE = D_SE
+lfg.D_S = D_S
+lfg.D_SW = D_SW
+
+
+-- dirty hack to not use table ids as keys
+lfg.ndirs = {}
+lfg.ndirs["D_W"] = D_W
+lfg.ndirs["D_NW"] = D_NW
+lfg.ndirs["D_N"] = D_N
+lfg.ndirs["D_NE"] = D_NE
+lfg.ndirs["D_E"] = D_E
+lfg.ndirs["D_SE"] = D_SE
+lfg.ndirs["D_S"] = D_S
+lfg.ndirs["D_SW"] = D_SW
+
+lfg.ndirs[D_W] = "D_W"
+lfg.ndirs[D_NW] = "D_NW"
+lfg.ndirs[D_N] = "D_N"
+lfg.ndirs[D_NE] = "D_NE"
+lfg.ndirs[D_E] = "D_E"
+lfg.ndirs[D_SE] = "D_SE"
+lfg.ndirs[D_S] = "D_S"
+lfg.ndirs[D_SW] = "D_SW"
+
+
 -- Flare Game sprites are west oriented
 local DIRS = {
     D_W ,
@@ -73,6 +104,7 @@ local DIRS = {
     D_S ,
     D_SW,
 }
+lfg.dirs = DIRS
 
 -- radians are east oriented
 local RDIRS = {
@@ -105,9 +137,15 @@ local STATES = {
 }
 
 local DEFAULT_DIR = D_S
+lfg.DEFAULT_DIR = DEFAULT_DIR
+local DEFAULT_NDIR = lfg.ndirs[DEFAULT_DIR]
+lfg.DEFAULT_NDIR = DEFAULT_NDIR
 local DEFAULT_STATE = STATES.stand
+lfg.DEFAULT_STATE = DEFAULT_STATE
 local DEFAULT_SPEED = 150
+lfg.DEFAULT_SPEED = DEFAULT_SPEED
 local DEFAULT_PJT_SPEED = DEFAULT_SPEED * math.pi
+lfg.DEFAULT_PJT_SPEED = DEFAULT_PJT_SPEED
 
 
 function lfg.pp(obj, fn)
@@ -217,14 +255,18 @@ function lfg.Character(c)
     char.grid = anim8.newGrid(char.as.w, char.as.h, char.sprite:getWidth(), char.sprite:getHeight())
 
     for row, dir in ipairs(DIRS) do
+        local ndir = lfg.ndirs[dir]
         char.ams[dir] = {}
+        char.ams[ndir] = {}
         for name, am in pairs(char.as.animations) do
             local begin = am.position + 1
             local fin   = am.position + am.frames
             local fdur = am.duration / am.frames
             local frames = string.format("%s-%s", begin, fin)
 
-            char.ams[dir][name] = anim8.newAnimation(char.grid(frames, row), fdur)
+            local am = assert(anim8.newAnimation(char.grid(frames, row), fdur))
+            char.ams[dir][name] = am
+            char.ams[ndir][name] = am
         end
     end
 
@@ -325,6 +367,7 @@ end
 
 
 function lfg.init(conf, args)
+    lfg.ran_init = true
     args = args or {}
 
     assert(type(args) == "table")
@@ -422,6 +465,12 @@ function lfg.set_player(player)
 end
 
 
+function lfg.tileToPixel(tl_x, tl_y)
+    assert(lfg.map)
+    return lfg.map:convertTileToPixel(tl_x, tl_y)
+end
+
+
 function lfg.update(dt)
     lfg.map:update(dt)
 
@@ -431,8 +480,10 @@ end
 
 
 function lfg.draw(dt)
-    local tx = math.floor(lfg.player.x - love.graphics.getWidth() / 2)
-    local ty = math.floor(lfg.player.y - love.graphics.getHeight() / 2)
+    local px = lfg.player and lfg.player.x or 0
+    local py = lfg.player and lfg.player.y or 0
+    local tx = math.max(0, math.floor(px - love.graphics.getWidth() / 2))
+    local ty = math.max(0, math.floor(py - love.graphics.getHeight() / 2))
 
     love.graphics.push()
     do
@@ -440,17 +491,21 @@ function lfg.draw(dt)
         -- TODO: why is this still drawing on a rectangle grid?
         --lfg.map:bump_draw(lfg.world, -tx, -ty)
         love.graphics.translate(-tx, -ty)
-        love.graphics.points(math.floor(lfg.player.x), math.floor(lfg.player.y))
-        love.graphics.rectangle("line", lfg.player.x - lfg.player.ox, lfg.player.y - lfg.player.oy, 128, 128)
+        if (lfg.player) then
+            love.graphics.points(math.floor(px), math.floor(py))
+            love.graphics.rectangle("line", lfg.player.x - lfg.player.ox, lfg.player.y - lfg.player.oy, 128, 128)
+        end
     end
     love.graphics.pop()
 
     love.graphics.print("Current FPS: "..tostring(love.timer.getFPS( )), 10, 10)
-    local tl_x, tl_y = lfg.map:convertPixelToTile(lfg.player.x, lfg.player.y)
-    love.graphics.print(string.format("Current Pos: (%.2f, %.2f) <%.2f, %.2f>", lfg.player.x, lfg.player.y, tl_x, tl_y), 10, 30)
-    love.graphics.print(string.format("Mouse Pos:   (%.2f, %.2f)", lfg.mouse.x, lfg.mouse.y), 10, 50)
-    local deg = (math.deg(lfg.mouse.angle) + 360) % 360
-    love.graphics.print(string.format("Angle[%.2f]: %.2f {%.2f} {[%i]}", lfg.mouse.distance, lfg.mouse.angle, math.deg(lfg.mouse.angle), deg), 10, 70)
+    if lfg.player then
+        local tl_x, tl_y = lfg.map:convertPixelToTile(lfg.player.x, lfg.player.y)
+        love.graphics.print(string.format("Current Pos: (%.2f, %.2f) <%.2f, %.2f>", lfg.player.x, lfg.player.y, tl_x, tl_y), 10, 30)
+        love.graphics.print(string.format("Mouse Pos:   (%.2f, %.2f)", lfg.mouse.x, lfg.mouse.y), 10, 50)
+        local deg = (math.deg(lfg.mouse.angle) + 360) % 360
+        love.graphics.print(string.format("Angle[%.2f]: %.2f {%.2f} {[%i]}", lfg.mouse.distance, lfg.mouse.angle, math.deg(lfg.mouse.angle), deg), 10, 70)
+    end
 end
 
 
@@ -476,8 +531,10 @@ function lfg.mousemoved(m_x, m_y, dx, dy)
         distance = distance,
     }
 
-    lfg.player.cdir = angle_to_dir(angle)
-    lfg.player:set_animation(lfg.player.cdir)
+    if (lfg.player) then
+        lfg.player.cdir = angle_to_dir(angle)
+        lfg.player:set_animation(lfg.player.cdir)
+    end
 end
 
 
@@ -513,6 +570,7 @@ end
 
 
 function lfg.mousepressed(m_x, m_y, button)
+    error("SHOULDN'T BE HERE")
     local x = math.floor(love.graphics.getWidth() / 2)
     local y = math.floor(love.graphics.getHeight() / 2)
 
