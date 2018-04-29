@@ -1,7 +1,13 @@
 (local argparse (require "argparse"))
+(log "loading server")
 (local game-server (require "server"))
+(log "loading client")
 (local game-client (require "client"))
+(log "loading entity")
 (local entity (require "entity"))
+(log "loading projectile")
+(local projectile (require "projectile"))
+(log "loading finished.")
 
 (local use_lfg false)
 
@@ -48,6 +54,7 @@
         (set player_obj.map_inputs true)
         (set player_obj.x 25) ;; in tile coordinates
         (set player_obj.y 25) ;; in tile coordinates
+        (set player_obj.clid client.luuid)
 
         ;;(var player (lfg.Entity.new nil player_obj))
         (set player (lfg.Entity.new nil player_obj))
@@ -65,10 +72,15 @@
   (pp client)
 
 
-  (var layer (: lfg.map :addCustomLayer "KoreEntities" (+ (# lfg.map.layers) 1)))
-  (set layer.entities {})
-  (set layer.update entity.update-entities)
-  (set layer.draw entity.draw-entities)
+  (var ent-layer (: lfg.map :addCustomLayer "KoreEntities" (+ (# lfg.map.layers) 1)))
+  (set ent-layer.entities {})
+  (set ent-layer.update entity.update-entities)
+  (set ent-layer.draw entity.draw-entities)
+
+  (var pjt-layer (: lfg.map :addCustomLayer "KoreProjectiles" (+ (# lfg.map.layers) 1)))
+  (set pjt-layer.projectiles {})
+  (set pjt-layer.update projectile.update-layer-projectiles)
+  (set pjt-layer.draw projectile.draw-projectiles)
 
   (lfg.dbg "Welcome to Kore!"))
 
@@ -77,8 +89,10 @@
   (lfg.draw))
 
 (defn love.update [dt]
-  (if server (: server :update))
-  (if client (: client :update))
+  ;;(if server (: server :update))
+  (if server (game-server.update server dt))
+  ;;(if client (: client :update))
+  (if client (game-client.update client dt))
   (lfg.update dt)
 
   (when (and player (or (~= player.x cplayer.x) (~= player.y cplayer.y)))
@@ -97,18 +111,25 @@
         (game-client.send-client-action client action))))
 
 
-(defn do-attack-spell [action]
+(defn do-attack-spell [action player]
   (assert (= :attack-spell action.type))
   (if use_lfg
       (lfg.do_attack_spell action)
       :else
       (when client
-        (game-client.send-client-action client action))))
+        (log "DO-ATTACK-SPELL: %s" (ppsl action))
+        (let [pjt (projectile.new action)
+              width 0.25
+              height 0.25]
+          ;;(projectile.add-to-world pjt width height)
+          (game-client.send-projectile client pjt))
+        ;;(game-client.send-client-action client action)
+        )))
 
 
 (defn love.mousepressed [m-x m-y button]
   (let [p-x lfg.player.x
         p-y lfg.player.y
-        (atype action) (game-client.mousepressed p-x p-y m-x m-y button)]
+        (atype action) (game-client.mousepressed p-x p-y m-x m-y button player)]
     (if (= atype :attack-melee) (do-attack-melee action)
-        (= atype :attack-spell) (do-attack-spell action))))
+        (= atype :attack-spell) (do-attack-spell action player))))

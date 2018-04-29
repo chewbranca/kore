@@ -39,7 +39,7 @@ local PORT = 34227
 
 local client, server
 
-local real_player = {x = 25, y = 25}
+local real_player = {x = 25, y = 25, player = nil}
 
 -- in game actors
 local entities_ = {}
@@ -301,14 +301,18 @@ function lfg.Spell(s)
     spell.grid = anim8.newGrid(spell.as.w, spell.as.h, spell.sprite:getWidth(), spell.sprite:getHeight())
 
     for row, dir in ipairs(DIRS) do
+        local ndir = lfg.ndirs[dir]
         spell.ams[dir] = {}
+        spell.ams[ndir] = {}
         for name, am in pairs(spell.as.animations) do
             local begin = am.position + 1
             local fin   = am.position + am.frames
             local fdur = am.duration / am.frames
             local frames = string.format("%s-%s", begin, fin)
 
-            spell.ams[dir][name] = assert(anim8.newAnimation(spell.grid(frames, row), fdur))
+            local am = assert(anim8.newAnimation(spell.grid(frames, row), fdur))
+            spell.ams[dir][name] = am
+            spell.ams[ndir][name] = am
         end
     end
 
@@ -457,6 +461,7 @@ end
 
 function lfg.set_player(player)
     real_player.x, real_player.y = player.x, player.y
+    real_player.player = player
     local x, y = lfg.map:convertTileToPixel(player.x, player.y)
     player.x, player.y = x, y
     lfg.world:add(player, player.x, player.y, 128, 128)
@@ -468,6 +473,12 @@ end
 function lfg.tileToPixel(tl_x, tl_y)
     assert(lfg.map)
     return lfg.map:convertTileToPixel(tl_x, tl_y)
+end
+
+
+function lfg.pixelToTile(px_x, px_y)
+    assert(lfg.map)
+    return lfg.map:convertPixelToTile(px_x, px_y)
 end
 
 
@@ -552,15 +563,18 @@ end
 
 
 function lfg.do_attack_spell(action)
+    local spacing = 50
+    print(string.format("CREATING SPELL: %s", require("serpent").line(action)))
     local pjt = lfg.Projectile:new({
-            x      = action.x,
-            y      = action.y,
+            x      = action.x + action.dx * spacing,
+            y      = action.y + action.dy * spacing,
             dx     = action.dx,
             dy     = action.dy,
             am     = lfg.player.spell.ams[lfg.player.cdir].power,
             ox     = lfg.player.spell.as.ox,
             oy     = lfg.player.spell.as.oy,
             sprite = lfg.player.spell.sprite,
+            clid   = action.clid
     })
 
     lfg.player.state = STATES.cast
@@ -707,7 +721,18 @@ function lfg.Projectile:new(p)
 
         age = 0,
         max_age = 5,
+
+        clid = p.clid,
+
+        type = "projectile"
     }
+
+    -- dual worlds hacks
+    local tl_x, tl_y = lfg.map:convertPixelToTile(self.x, self.y)
+    self.tl_x = tl_x
+    self.tl_y = tl_y
+    lfg.real_world:add(self, tl_x, tl_y, 0.25, 0.25)
+
 
     setmetatable(self, Projectile_mt)
     table.insert(projectiles_, self)
@@ -717,9 +742,56 @@ function lfg.Projectile:new(p)
 end
 
 
+local skip_collisions = function(item, other)
+    if item.type == other.type and item.type == "projectile" then
+        return false
+    else
+        return "slide"
+    end
+end
+
 function lfg.Projectile:update(dt)
-    self.x = self.x + self.dx * self.speed * dt
-    self.y = self.y + self.dy * self.speed * dt
+    local x = self.x + self.dx * self.speed * dt
+    local y = self.y + self.dy * self.speed * dt
+    local tl_x, tl_y = lfg.map:convertPixelToTile(x, y)
+
+
+    local actual_x, actual_y, cols, len = lfg.real_world:move(
+        self, tl_x, tl_y, skip_collisions)
+    local actual_x_px, actual_y_px = lfg.map:convertTileToPixel(
+        actual_x, actual_y)
+
+    self.tl_x, self.tl_y = actual_x, actual_y
+    self.x, self.y = actual_x_px, actual_y_px
+
+    if len > 0 then
+        self.speed = 0 -- stop projectile on collision. Replace with explosion
+        self.age = self.age + self.max_age
+
+        -- prints "Collision with A"
+        for i=1,len do -- If more than one simultaneous collision, they are sorted out by proximity
+            local col = cols[i]
+            lfg.dbg("GOT COLLISION[%i]! OTHER IS: %s", i, require("serpent").line(col.other.clid))
+            for k,v in pairs(col) do
+                lfg.dbg("\t%s ==> %s", k, v)
+            end
+            --print(("Collision with %s."):format(require("serpent").line(col)))
+            lfg.dbg("Item[%s][%s] collided with Other[%s][%s]", col.item.type, col.item.clid, col.other.type, col.other.clid)
+            if col.item.player then
+                lfg.dbg("\tITEM.PLAYER.clid IS: %s", col.item.player.clid)
+            else
+                lfg.dbg("\tMISSING ITEM.PLAYER")
+            end
+            if col.other.player then
+                lfg.dbg("\tOTHER.PLAYER.clid IS: %s", col.other.player.clid)
+                if not col.other.player.clid then
+                    lfg.dbg("\t\tnil OTHER.PLAYER.clid, player IS: %s", col.other.player)
+                end
+            else
+                lfg.dbg("\tMISSING OTHER.PLAYER")
+            end
+        end
+    end
 
     self.am:update(dt)
 end

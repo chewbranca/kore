@@ -63,7 +63,9 @@
   (assert e.char "Entity char is present")
   (assert e.clid "Entity client id is present")
 
-  (let [spell (or e.spell (lfg.get_spell "Fireball"))]
+  (let [spell (or e.spell (lfg.get_spell "Fireball"))
+        w 1.0
+        h 1.0]
     {
      :clid e.clid
      :char e.char
@@ -75,12 +77,15 @@
      :oy (or e.oy e.char.as.oy 0)
      :vx (or e.vx 0)
      :vy (or e.vy 0)
+     :w (or e.w w)
+     :h (or e.h h)
      :cdir (or e.cdir lfg.DEFAULT_NDIR)
      :state (or e.state lfg.DEFAULT_STATE)
      :am (or e.am (. (. e.char.ams lfg.DEFAULT_NDIR) lfg.DEFAULT_STATE))
      :speed (or e.speed lfg.DEFAULT_SPEED)
      :spell spell
      :spell_name spell.name
+     :type :entity
      }))
 
 
@@ -88,10 +93,6 @@
   (let [char (assert (lfg.get_character p.char_name))
         spell (assert (lfg.get_spell p.spell_name))
         p_obj {}]
-
-    (var count 0)
-    (each [k v (pairs char.ams)]
-      (set count (+ count 1)))
 
     (set p_obj.name p.name)
     (set p_obj.char char)
@@ -101,11 +102,12 @@
     (set p_obj.ox p.ox)
     (set p_obj.oy p.oy)
     (set p_obj.clid p.clid)
+    (set p_obj.type "entity")
 
     (new p_obj)))
 
 
-(defn serializable-player [player]
+(defn serialize [player]
   {
    :char_name player.char_name
    :spell_name player.spell_name
@@ -134,7 +136,10 @@
 
 
 (defn add-entity [layer entity]
-  (table.insert layer.entities entity))
+  (table.insert layer.entities entity)
+  (let [(x y) (lfg.pixelToTile entity.x entity.y)]
+    ;; TODO: is this double adding the local client player in lfg.set_player?
+    (: lfg.real_world :add entity x y 1 1)))
 
 
 (defn update-entities [self dt]
@@ -156,6 +161,6 @@
  :update-entities update-entities
  :draw-entities draw-entities
  :create-player-entity create-player-entity
- :serializable-player serializable-player
+ :serialize serialize
 }
 

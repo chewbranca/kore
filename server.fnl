@@ -1,6 +1,11 @@
+(local bump (require "bump"))
 (local sock (require "sock"))
 
+(log "loading entity")
 (local entity (require "entity"))
+(log "loading projectile")
+(local projectile (require "projectile"))
+(log "loading rest of server")
 
 (local debug true)
 
@@ -26,19 +31,75 @@
         (: client :send atype data)))))
 
 
-(defn announce-players [client client-players]
-  (each [uuid client-player (pairs client-players)]
+(defn announce-players [client players]
+  (each [uuid client-player (pairs players)]
     (when (~= uuid client.luuid)
       (: client :send :announce-player
-         (entity.serializable-player client-player)))))
+         (entity.serialize client-player)))))
 
+
+(defn broadcast-projectiles [clients projectiles]
+  (let [serialized (projectile.serialize-all projectiles)]
+    (when (> (# serialized) 0)
+      (each [uuid client (pairs clients)]
+        (: client :send :update-projectiles serialized)))))
+
+
+(defn skip-collisions [item other]
+  (if (= item.type other.type "projectile")
+      false
+      :else
+      "slide"))
+
+
+(defn update-projectile [world pjt dt]
+  (let [x (+ pjt.x (* pjt.dx pjt.speed dt))
+        y (+ pjt.y (* pjt.dy pjt.speed dt))
+        (tl_x tl_y) (lfg.pixelToTile x y)]
+    (: world :move pjt.uuid x y skip_collisions)))
+
+
+(defn update-projectiles [world projectiles dt]
+  (let [expired {}
+        collisions {}]
+    (each [uuid pjt (pairs projectiles)]
+      ;;(set pjt.age (+ pjt.age dt))
+      (if (> pjt.age pjt.max_age) (table.insert expired pjt.uuid pjt)
+          :else
+          (let [(actual_x actual_y cols len) (update-projectile world pjt dt)
+                (tl_x tl_y) (lfg.pixelToTile actual_x actual_y)]
+            (set pjt.x actual_x)
+            (set pjt.y actual_y)
+            (set pjt.tl_x tl_x)
+            (set pjt.tl_y tl_y)
+            (log "CHECKING COLLISIONS ON (%s)" len)
+            (when (> len 0)
+              (log "GOT %s COLLISIONS" len)
+              ;;(set pjt.speed 0)
+              (log "UPDATING AGE (%s) (%s)" pjt.age pjt.max_age)
+              ;;(set pjt.age (+ pjt.age pjt.max_age))
+              )
+            )))
+    (each [uuid pjt (pairs expired)]
+      (table.remove projectiles uuid))))
+
+
+(defn update [server dt]
+  (let [sock_server server.server
+        projectiles server.projectiles
+        world server.world]
+    (: sock_server :update)
+    (update-projectiles world projectiles dt)
+    (broadcast-projectiles server.clients projectiles)))
 
 
 (defn run-server [port]
   (log "STARTING SERVER TO DOOM")
   (let [clients {}
-        client-players {}
-        server (sock.newServer "*" port)]
+        players {}
+        projectiles {}
+        server (sock.newServer "*" port)
+        world (bump.newWorld 1)]
     (: server :on "connect"
        (fn [data client]
          (let [uuid (lume.uuid)
@@ -63,19 +124,34 @@
        (fn [data client]
          (let [ent (entity.create-player-entity data)
                layer (. lfg.map.layers "KoreEntities")]
-           (tset client-players client.luuid ent)
+           (tset players client.luuid ent)
+           (: world :add ent.clid ent.x ent.y ent.w ent.h)
            (announce-player client clients data)
-           (announce-players client client-players))))
+           (announce-players client players))))
 
     (: server :on :send-player-state
        (fn [data client]
-         (let [player (. client-players client.luuid)]
+         (let [player (. players client.luuid)]
            (set player.x data.x)
            (set player.y data.y)
            (broadcast-event
-            clients :player-update (entity.serializable-player player)))))
+            clients :player-update (entity.serialize player)))))
 
-    server))
+    (: server :on :new-projectile
+       (fn [data client]
+         (let [pjt (projectile.new data)]
+           (tset projectiles pjt.uuid pjt)
+           (log "CREATING NEW PROJECTILE WITH: %s" (ppsl data))
+           (: world :add pjt.uuid pjt.x pjt.y pjt.w pjt.h)
+           (broadcast-event
+            clients :new-projectile (projectile.serialize pjt)))))
+
+    {
+     :server server
+     :clients clients
+     :players players
+     :projectiles projectiles
+     :world world}))
 
 
-{:run-server run-server :port PORT}
+{:run-server run-server :port PORT :update update}

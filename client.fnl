@@ -4,13 +4,14 @@
 
 (local lfg (require "lfg"))
 (local entity (require "entity"))
+(local projectile (require "projectile"))
 
 
 (defn run-client [host port bootstrap]
   (log "STARTING CLIENT CONNECTION")
   (let [client (sock.newClient host port)
-        client-players {}
-        players {}]
+        players {}
+        projectiles {}]
     (: client :on "connect"
        (fn [data] (log "Successfully connected to server: (%s)" data)))
 
@@ -33,25 +34,42 @@
 
     (: client :on "announce-player"
        (fn [data]
+         (log "GOT PLAYER ANNOUNCE: %s" (ppsl data))
          (let [ent (entity.create-player-entity data)
                layer (. lfg.map.layers "KoreEntities")]
-           (tset client-players data.clid ent)
+           (tset players data.clid ent)
            (entity.add-entity layer ent))))
 
     (: client :on "player-update"
        (fn [data]
-         (let [player (. client-players data.clid)]
+         (let [player (. players data.clid)]
            ;; TODO better handle case of local player
-           ;; issue being the local player isn't in client-players
+           ;; issue being the local player isn't in players
            (when player
              (set player.x data.x)
              (set player.y data.y)))))
 
+    (: client :on "new-projectile"
+       (fn [data]
+         (let [pjt (projectile.new data)
+               layer (. lfg.map.layers "KoreProjectiles")]
+           (tset projectiles pjt.uuid pjt)
+           (projectile.add-projectile layer pjt true))))
+
+    (: client :on "update-projectiles"
+       (fn [data]
+         ;;(log "UPDATING PROJECTILES WITH: %s\nEXISTING PROJECTILES: %s" (ppsl data) (ppsl projectiles))
+         (each [i spjt (ipairs data)]
+           (let [pjt (. projectiles spjt.uuid)]
+             (when pjt
+                (set pjt.x spjt.x)
+                (set pjt.y spjt.y))))))
+
     (: client :connect)
-    client))
+    {:client client :players players}))
 
 
-(defn mousepressed [p-x p-y m-x m-y button]
+(defn mousepressed [p-x p-y m-x m-y button player]
   ;; w-{x,y} = window-{x,y} middle of screen
   ;; p-{x,y} = player-{x,y} actual player location
   ;; m-{x,y} = mouse-{x,y}  mouse location
@@ -71,14 +89,23 @@
           (values atype action))
         (= button 2)
         (let [atype :attack-spell
-              action {:x p-x :y p-y :dx n-dx :dy n-dy :type atype}]
+              spell-name player.spell.name
+              dir (. lfg.ndirs player.cdir)
+              action {:x p-x :y p-y :dx n-dx :dy n-dy :dir dir
+                      :type atype :spell-name spell-name}]
           (values atype action)))))
 
 
 (defn send-client-action [client action]
-  (assert client)
-  (set action.clid client.luuid)
-  (: client :send action.type action))
+  (assert client.client)
+  (set action.clid client.client.luuid)
+  (: client.client :send action.type action))
+
+
+(defn send-projectile [client pjt]
+  (let [spjt (projectile.serialize pjt)]
+    (set pjt.last  spjt)
+    (: client.client :send :new-projectile spjt)))
 
 
 (defn announce-self [client player]
@@ -90,20 +117,26 @@
                 :char_name player.char.name
                 :spell_name player.obj.spell.name ;; TODO: should be able to get player.spell
                 :type :announce-self
-                :clid client.luuid
+                :clid client.client.luuid
                }]
     (send-client-action client action)))
 
 
 (defn send-player-state [client player]
-  (assert client)
-  (: client :send :send-player-state (entity.serializable-player player)))
+  (assert client.client)
+  (: client.client :send :send-player-state (entity.serialize player)))
+
+
+(defn update [client dt]
+  (: client.client :update))
 
 
 {
  :run-client run-client
  :send-client-action send-client-action
+ :send-projectile send-projectile
  :mousepressed mousepressed
  :announce-self announce-self
  :send-player-state send-player-state
+ :update update
 }
