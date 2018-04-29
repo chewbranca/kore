@@ -5,7 +5,9 @@ lume = require("lume")
 
 lfg = require("lfg")
 
-table[("insert")](package[("loaders")], fennel[("searcher")])
+--table[("insert")](package[("loaders")], fennel[("searcher")])
+table.insert(package.loaders, fennel.make_searcher({correlate=true}))
+
 pps = function(x)
    return require("serpent").block(x, {maxlevel=8,maxnum=64,
                                        nocode=true,comment=false})
@@ -15,4 +17,5 @@ pp = function(x) print(pps(x)) end
 ppl = function(x) print(ppsl(x)) end
 log = function(...) print(string.format(...)) end
 
-fennel.dofile("main.fnl")
+--fennel.dofile("main.fnl")
+fennel.dofile("main.fnl", {correlate=true})

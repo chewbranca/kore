@@ -545,6 +545,33 @@ local function peephole(chunk)
     return chunk
 end
 
+-- correlate line numbers in input with line numbers in output
+local function flattenChunkCorrelated(mainChunk)
+    local function flatten(chunk, out, lastLine, file)
+        if chunk.leaf then
+            out[lastLine] = (out[lastLine] or "") .. " " .. chunk.leaf
+        else
+            for _, subchunk in ipairs(chunk) do
+                -- Ignore empty chunks
+                if subchunk.leaf or #subchunk > 0 then
+                    -- don't increase line unless it's from the same file
+                    if subchunk.ast and file == subchunk.ast.file then
+                        lastLine = math.max(lastLine, subchunk.ast.line or 0)
+                    end
+                    lastLine = flatten(subchunk, out, lastLine, file)
+                end
+            end
+        end
+        return lastLine
+    end
+    local out = {}
+    local last = flatten(mainChunk, out, 1, mainChunk.file)
+    for i = 1, last do
+        if out[i] == nil then out[i] = "" end
+    end
+    return table.concat(out, "\n")
+end
+
 -- Flatten a tree of indented Lua source code lines.
 -- Tab is what is used to indent a block.
 local function flattenChunk(sm, chunk, tab, depth)
@@ -590,21 +617,25 @@ end
 local function flatten(chunk, options)
     local sm = options.sourcemap and {}
     chunk = peephole(chunk)
-    local ret = flattenChunk(sm, chunk, options.indent, 0)
-    if sm then
-        local key, short_src
-        if options.filename then
-            short_src = options.filename
-            key = '@' .. short_src
-        else
-            key = ret
-            short_src = makeShortSrc(options.source or ret)
+    if(options.correlate) then
+        return flattenChunkCorrelated(chunk), {}
+    else
+        local ret = flattenChunk(sm, chunk, options.indent, 0)
+        if sm then
+            local key, short_src
+            if options.filename then
+                short_src = options.filename
+                key = '@' .. short_src
+            else
+                key = ret
+                short_src = makeShortSrc(options.source or ret)
+            end
+            sm.short_src = short_src
+            sm.key = key
+            fennelSourcemap[key] = sm
         end
-        sm.short_src = short_src
-        sm.key = key
-        fennelSourcemap[key] = sm
+        return ret, sm
     end
-    return ret, sm
 end
 
 -- Convert expressions to Lua string
@@ -746,6 +777,7 @@ local function compile1(ast, scope, parent, opts)
             exprs = handleCompileOpts({expr(call, 'statement')}, parent, opts, ast)
         end
     elseif isVarg(ast) then
+        -- assertCompile(scope.vararg, "unexpected vararg", ast)
         exprs = handleCompileOpts({expr('...', 'varg')}, parent, opts, ast)
     elseif isSym(ast) then
         local e
@@ -1020,6 +1052,7 @@ SPECIALS['fn'] = function(ast, scope, parent)
     local argNameList = {}
     for i = 1, #argList do
         if isVarg(argList[i]) then
+            assertCompile(i == #argList, "expected vararg in last parameter position", ast)
             argNameList[i] = '...'
             fScope.vararg = true
         elseif isSym(argList[i])
@@ -1214,10 +1247,11 @@ SPECIALS['if'] = function(ast, scope, parent, opts)
     end
 
     if wrapper == 'iife' then
-        emit(parent, ('local function %s()'):format(tostring(s)), ast)
+        local iifeargs = scope.vararg and '...' or ''
+        emit(parent, ('local function %s(%s)'):format(tostring(s), iifeargs), ast)
         emit(parent, buffer, ast)
         emit(parent, 'end', ast)
-        return expr(('%s()'):format(tostring(s)), 'statement')
+        return expr(('%s(%s)'):format(tostring(s), iifeargs), 'statement')
     elseif wrapper == 'none' then
         -- Splice result right into code
         for i = 1, #buffer do
@@ -1636,16 +1670,22 @@ local function searchModule(modulename)
     end
 end
 
+module.make_searcher = function(options)
+   return function(modulename)
+      local opts = {}
+      for k,v in pairs(options or {}) do opts[k] = v end
+      local filename = searchModule(modulename)
+      if filename then
+         return function(modname)
+            return dofile_fennel(filename, opts, modname)
+         end
+      end
+   end
+end
+
 -- This will allow regular `require` to work with Fennel:
 -- table.insert(package.loaders, fennel.searcher)
-module.searcher = function(modulename)
-    local filename = searchModule(modulename)
-    if filename then
-        return function(modname)
-            return dofile_fennel(filename, nil, modname)
-        end
-    end
-end
+module.searcher = module.make_searcher()
 
 local function makeCompilerEnv(ast, scope, parent)
     return setmetatable({
@@ -1707,9 +1747,7 @@ local stdmacros = [===[
          x)
  :defn (fn [name args ...]
          (assert (sym? name) "defn: function names must be symbols")
-         (let [op (if (multi-sym? (. name 1)) :set :local)]
-           (list (sym op) name
-                 (list (sym :fn) args ...))))
+         (list (sym :fn) name args ...))
  :when (fn [condition body1 ...]
          (assert body1 "expected body")
          (list (sym 'if') condition
@@ -1724,16 +1762,16 @@ local stdmacros = [===[
                  arglist (if has-internal-name? (. args 2) (. args 1))
                  arity-check-position (if has-internal-name? 3 2)]
              (assert (> (# args) 1) "missing body expression")
-             (each [i arg (ipairs arglist)]
-               (if (and (not (: (tostring arg) :match "^?"))
-                        (~= (tostring arg) "..."))
+             (each [i a (ipairs arglist)]
+               (if (and (not (: (tostring a) :match "^?"))
+                        (~= (tostring a) "..."))
                    (table.insert args arity-check-position
                                  (list (sym "assert")
-                                       (list (sym "~=") (sym "nil") arg)
+                                       (list (sym "~=") (sym "nil") a)
                                        (: "Missing argument %s on %s:%s"
-                                          :format (tostring arg)
-                                          (or arg.filename "unknown")
-                                          (or arg.line "?"))))))
+                                          :format (tostring a)
+                                          (or a.filename "unknown")
+                                          (or a.line "?"))))))
              (list (sym "fn") ((or unpack table.unpack) args))))
 }
 ]===]
