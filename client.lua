@@ -1,5 +1,5 @@
-local lume = require("lume")
-local sock = require("sock")
+local lume = require("lib.lume")
+local sock = require("lib.sock")
 
 local lfg = require("lfg")
 

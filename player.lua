@@ -1,4 +1,4 @@
-local lume = require("lume")
+local lume = require("lib.lume")
 
 local STATES = {
     run = "run",

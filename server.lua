@@ -1,6 +1,6 @@
-local bump = require("bump")
-local lume = require("lume")
-local sock = require("sock")
+local bump = require("lib.bump")
+local lume = require("lib.lume")
+local sock = require("lib.sock")
 
 local lfg = require("lfg")
 
