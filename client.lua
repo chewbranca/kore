@@ -118,6 +118,20 @@ local function init(_Client, host, port)
         end
     end)
 
+    client:on("announce_players", function(data)
+        for puid, pobj in pairs(data.players) do
+            local player = self.players[puid]
+            if not player then
+                player = GamePlayer(pobj)
+                self.players[puid] = player
+                -- TODO: remove lfg here and migrate insert elsewhere
+                local layer = lfg.map.layers["KorePlayers"]
+                table.insert(layer.players, player)
+            end
+            player:update_player(pobj)
+        end
+    end)
+
     log("CONNECTING TO SERVER")
     client:connect()
     log("FINISHED CONNECTING TO SERVER")

@@ -76,6 +76,7 @@ local function init(_Server, port)
         self.world:add(client.clid, player.x, player.y, player.w, player.h)
         client:send("create_player_ack", {req_id=data.req_id,
             player=player:serialized()})
+        self:announce_players()
     end)
 
     server:on("announce_self", function(data, client)
@@ -125,10 +126,15 @@ function Server:announce_player(aclient, data)
 end
 
 
-function Server:announce_players(client)
-    for uuid, player in pairs(self.players) do
-        client:send("announce_player", player:serialized())
+function Server:announce_players()
+    local payload = {tick=self.ticks, players={}}
+    for _, player in pairs(self.players) do
+        if not payload.players[player.uuid] then
+            payload.players[player.uuid] = player:serialized()
+        end
     end
+    --log("ANNOUNCE_PLAYERS PAYLOAD: %s", ppsl(payload))
+    self.server:sendToAll("announce_players", payload)
 end
 
 
