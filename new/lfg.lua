@@ -453,4 +453,29 @@ function lfg.draw(dt)
 end
 
 
+function lfg.get_key_dir()
+    local is_kd = love.keyboard.isDown
+    local cdir = {x=0, y=0}
+    local ret = nil
+
+    for key, dir in pairs(KEY_DIRS) do
+        if love.keyboard.isDown(key) then
+            cdir.x = cdir.x + dir.x
+            cdir.y = cdir.y + dir.y
+        end
+    end
+
+    if cdir.x == 0 and cdir.y == 0 then
+        return nil
+    end
+
+    for _, dir in ipairs(DIRS) do
+        if dir.x == cdir.x and dir.y == cdir.y then
+            return dir
+        end
+    end
+    assert(false, "should always find a dir")
+end
+
+
 return lfg

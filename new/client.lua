@@ -3,58 +3,62 @@ local sock = require("sock")
 
 local lfg = require("lfg")
 
+local GamePlayer = require("player")
+
 local debug = true
 
-local C = {}
-Client.__index = C
+local Client = {}
+Client.__index = Client
 
 
-local function init(host, port, bootstrap)
+local function init(_Client, host, port)
     assert(host, "Host is present")
     assert(port, "Port is present")
-    log("STARTING CLIENT CONNECTION")
+    log("STARTING CLIENT CONNECTION.")
     local client = sock.newClient(host, port)
     local players = {}
     local projectiles = {}
+    local reqs = {}
 
     local self = setmetatable({
             client = client,
             players = players,
-            projectiles = projectiles
-        })
+            projectiles = projectiles,
+            reqs = reqs,
+            last_tick = 0,
+            curr_updates = {},
+        }, Client)
 
     client:on("connect", function(data)
-        log("Successfully connected to server: (%s)" data)
+        log("Successfully connected to server: (%s)", data)
     end)
 
     client:on("welcome", function(data)
-        (log "Uh oh... got eerie hello from server: %s" data.msg)
-        client.luuid = data.uuid
+        log("Uh oh... got eerie hello from server: %s", data.msg)
+        client.clid = data.uuid
         self.uuid = data.uuid
-        -- Bootstrap client if provided
-        if bootstrap then bootstrap(self) end
     end)
 
     client:on("disconnect", function(data)
-        log("[ERROR] DISCONNECTED: %s" data)
+        log("[ERROR] DISCONNECTED: %s", data)
     end)
 
     client:on("attack_melee", function(data)
         -- TODO: add client attack
-        log("GOT ATTACK_MELEE: %s" ppsl(data))
+        log("GOT ATTACK_MELEE: %s", ppsl(data))
     end)
 
     client:on("attack_spell", function(data)
         -- TODO: add client attack
-        log("GOT ATTACK_MELEE: %s" ppsl(data))
+        log("GOT ATTACK_MELEE: %s", ppsl(data))
     end)
 
     client:on("announce_player", function(data)
         log("GOT PLAYER ANNOUNCE: %s", ppsl(data))
-        local player = Player(data)
+        local player = GamePlayer(data)
+        -- TODO: remove lfg here and migrate insert elsewhere
         local layer = lfg.map.layers["KorePlayers"]
         players[data.clid] = player
-        -- TODO: remove lfg here and migrate insert elsewhere
         table.insert(layer.players, player)
     end)
 
@@ -76,7 +80,7 @@ local function init(host, port, bootstrap)
     end)
 
     client:on("update_projectiles", function(data)
-        for i, spjt ipairs(data) do
+        for i, spjt in ipairs(data) do
             local pjt = self.projectiles[spjt.uuid]
             if pjt then
                 pjt.x = spjt.x
@@ -87,12 +91,65 @@ local function init(host, port, bootstrap)
         end
     end)
 
+    client:on("create_player_ack", function(data)
+        log("GOT CREATE_PLAYER_ACK: %s -- %s", ppsl(data), ppsl(data.player))
+        local req = reqs[data.req_id]
+        if req then
+            -- TODO: dedupe this logic with annouce_player
+            local player = GamePlayer(data.player)
+            req.user:bootstrap_player(player)
+            -- TODO: remove lfg here and migrate insert elsewhere
+            local layer = lfg.map.layers["KorePlayers"]
+            self.players[self.uuid] = player
+            self.players[player.uuid] = player
+            table.insert(layer.players, player)
+        else
+            log("ERROR[client_player_ack]: UNKNOWN REQ: %s", ppsl(data))
+        end
+    end)
+
+    client:on("server_tick", function(data)
+        --log("GOT SERVER_TICK[%i]: %s", data.tick, ppsl(data))
+        self.last_tick = data.tick
+        self.curr_updates = data.updates
+        for puid, update in pairs(data.updates) do
+            local player = assert(self.players[puid])
+            player:update_player(update, tick)
+        end
+    end)
+
+    log("CONNECTING TO SERVER")
     client:connect()
+    log("FINISHED CONNECTING TO SERVER")
 
     return self
 end
-setmetatable(C, {__call = init})
+setmetatable(Client, {__call = init})
 
 
+function Client:update(dt)
+    self.client:update()
+end
 
+
+function Client:create_player(user, payload)
+    log("CREATING PLAYER: %s", ppsl(payload))
+    local req_id = lume.uuid()
+    local req = {
+        action  = "create_player",
+        req_id  = req_id,
+        user_id = user.uuid,
+        payload = payload,
+    }
+    self.client:send(req.action, req)
+    self.reqs[req_id] = {user=user, req=req}
+end
+
+
+function Client:send_player_update(user, updates)
+    self.client:send("player_update", updates)
+end
+
+
+return Client
 
