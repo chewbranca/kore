@@ -307,7 +307,7 @@ end
 
 
 -- thanks to: https://gamedev.stackexchange.com/questions/49290/whats-the-best-way-of-transforming-a-2d-vector-into-the-closest-8-way-compass-d
-local function angle_to_dir(angle)
+function lfg.angle_to_dir(angle)
     local n = #RDIRS
     local i = 1 + math.floor(n * angle / (2 * math.pi) + n + 0.5) % n
     return RDIRS[i]

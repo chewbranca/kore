@@ -5,6 +5,7 @@ local sock = require("lib.sock")
 local lfg = require("lfg")
 
 local GamePlayer = require("player")
+local Projectile = require("projectile")
 
 local debug = true
 
@@ -52,16 +53,6 @@ local function init(_Server, port)
         client:send("welcome", {msg=msg, uuid=uuid})
     end)
 
-    --server.on("attack_melee", function(data, client)
-    --    lfg.log("MELEE ATTACK FROM CLIENT[%s]: %s", client.clid, ppsl(data))
-    --    self:broadcast_event("attack_melee" data)
-    --end)
-
-    --server.on("attack_spell", function(data, client)
-    --    lfg.log("SPELL ATTACK FROM CLIENT[%s]: %s", client.clid, ppsl(data))
-    --    self:broadcast_event("attack_melee" data)
-    --end)
-
     server:on("create_player", function(data, client)
         log("GOT CREATE PLAYER: %s", ppsl(data))
         local player = GamePlayer({
@@ -95,12 +86,12 @@ local function init(_Server, port)
         -- TODO: add update ack or track frame id and send frame ack
     end)
 
-    server:on("new_projectile", function(data, client)
+    server:on("create_projectile", function(data, client)
+        --log("CREATING NEW PROJECTILE WITH: %s", ppsl(data))
         local pjt = Projectile(data)
         self.projectiles[pjt.uuid] = pjt
-        lfg.log("CREATING NEW PROJECTILE WITH: %s", ppsl(data))
         world:add(pjt.uuid, pjt.x, pjt.y, pjt.w, pjt.h)
-        self:broadcast_event("new_projectile", pjt:serialized())
+        self:broadcast_event("created_projectile", pjt:serialized())
     end)
 
     return self
@@ -139,13 +130,22 @@ end
 
 
 function Server:broadcast_projectiles(dt)
-    -- TODO: what to do about serializeAll()? Where to put it?
-    --local serialized = self.projectiles:serialize_all()
-    local serialized = {}
-    if #serialized > 0 then
-        for uuid, client in pairs(self.clients) do
-            client:send("update_projectiles", serialized)
+    local serialized = {projectiles={}, expired={}}
+    local updated = false
+    if next(self.projectiles) ~= nil then
+        updated = true
+        for uuid, pjt in pairs(self.projectiles) do
+            serialized.projectiles[uuid] = pjt:serialized()
         end
+    end
+    if next(self.expired) ~= nil then
+        updated = true
+        for uuid, pjt in pairs(self.expired) do
+            serialized.expired[uuid] = pjt:serialized()
+        end
+    end
+    if updated then
+        self.server:sendToAll("updated_projectiles", serialized)
     end
 end
 
@@ -160,7 +160,7 @@ end
 function Server:update(dt)
     self.server:update(dt)
     self:process_updates(dt)
-    -- self.update_projectiles()
+    self:update_projectiles(dt)
     self:tick(dt)
 end
 
@@ -173,13 +173,22 @@ function Server:tick(dt)
         self.tick_tock = self.tick_tock - self.tick_rate
         self:broadcast_updates(dt)
         self:clear_updates(dt)
-        --self:broadcast_projectiles(dt)
+        self:broadcast_projectiles(dt)
+        self:clear_projectiles(dt)
     end
 end
 
 
 function Server:clear_updates(dt)
     self.updates = {}
+end
+
+
+function Server:clear_projectiles(dt)
+    for uuid, pjt in pairs(self.expired) do
+        self.projectiles[uuid] = nil
+    end
+    self.expired = {}
 end
 
 
@@ -192,6 +201,21 @@ function Server:process_updates(dt)
             local y = player.y + cdir.y * player.speed * dt
             player.x, player.y = x, y
             update.x, update.y = x, y
+        end
+    end
+end
+
+
+function Server:update_projectiles(dt)
+    if not self.expired then self.expired = {} end
+
+    for uuid, pjt in pairs(self.projectiles) do
+        pjt:update(dt)
+
+        if pjt:is_expired() then
+            self.expired[uuid] = pjt
+        else
+            pjt:tick(dt)
         end
     end
 end

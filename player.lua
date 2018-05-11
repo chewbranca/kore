@@ -36,11 +36,11 @@ local function init(self, args)
         --map_inputs = args.map_inputs or true,
         x = args.x or 250,
         y = args.y or 250,
-        ox = args.ox or char.as.ox or 0,
-        oy = args.oy or char.as.oy or 0,
+        ox = args.ox or spell.as.ox or 0,
+        oy = args.oy or spell.as.oy or 0,
         -- TODO: rectify width/height once dual worlds dichotomy resolved
-        w = args.w or 1.0,
-        h = args.h or 1.0,
+        w = args.w or spell.as.w or 128,
+        h = args.h or spell.as.h or 128,
         vx = args.vx or 200,
         vy = args.vy or 200,
         age = 0,
@@ -61,7 +61,7 @@ setmetatable(Player, {__call = init})
 
 
 function Player:switch_animation(dir, state)
-    state = state or  DEFAULT_STATE
+    state = state or DEFAULT_STATE
     self.am = self.char.ams[dir][state]
 end
 
@@ -97,7 +97,7 @@ end
 function Player:serialized()
     return {
         character = self.char.name,
-        spell = self.spell.name,
+        spell_name = self.spell.name,
         name = self.name,
         x = self.x,
         y = self.y,

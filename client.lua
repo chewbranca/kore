@@ -4,6 +4,7 @@ local sock = require("lib.sock")
 local lfg = require("lfg")
 
 local GamePlayer = require("player")
+local Projectile = require("projectile")
 
 local debug = true
 
@@ -43,16 +44,6 @@ local function init(_Client, host, port)
         log("[ERROR] DISCONNECTED: %s", data)
     end)
 
-    client:on("attack_melee", function(data)
-        -- TODO: add client attack
-        log("GOT ATTACK_MELEE: %s", ppsl(data))
-    end)
-
-    client:on("attack_spell", function(data)
-        -- TODO: add client attack
-        log("GOT ATTACK_MELEE: %s", ppsl(data))
-    end)
-
     client:on("announce_player", function(data)
         log("GOT PLAYER ANNOUNCE: %s", ppsl(data))
         local player = GamePlayer(data)
@@ -72,22 +63,28 @@ local function init(_Client, host, port)
         end
     end)
 
-    client:on("new_projectile", function(data)
+    client:on("created_projectile", function(data)
+        assert(data.uuid)
         local pjt = Projectile(data)
+
         local layer = lfg.map.layers["KoreProjectiles"]
-        players[data.uuid] = pjt
-        Projectile.add_projectile(layer, pjt, true)
+        self.projectiles[data.uuid] = pjt
+        layer.projectiles[data.uuid] = pjt
     end)
 
-    client:on("update_projectiles", function(data)
-        for i, spjt in ipairs(data) do
-            local pjt = self.projectiles[spjt.uuid]
+    client:on("updated_projectiles", function(data)
+        for uuid, spjt in pairs(data.projectiles) do
+            local pjt = self.projectiles[uuid]
             if pjt then
-                pjt.x = spjt.x
-                pjt.y = spjt.y
+                pjt:update_projectile(spjt)
             else
                 log("[ERROR] UPDATE_PROJECTILES MISSING PJT FOR %s", spjt.uuid)
             end
+        end
+        local layer = lfg.map.layers["KoreProjectiles"]
+        for uuid, spjt in pairs(data.expired) do
+            self.projectiles[uuid] = nil
+            layer.projectiles[uuid] = nil
         end
     end)
 
@@ -162,6 +159,11 @@ end
 
 function Client:send_player_update(user, updates)
     self.client:send("player_update", updates)
+end
+
+
+function Client:create_projectile(m_info)
+    self.client:send("create_projectile", m_info)
 end
 
 

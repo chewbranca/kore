@@ -63,16 +63,12 @@ function love.load(args)
     end
 
     local pjt_layer = lfg.map:addCustomLayer("KoreProjectiles", #lfg.map.layers + 1)
-    pjt_layer.players = {}
+    pjt_layer.projectiles = {}
     pjt_layer.update = function(self, dt)
-        for i, pjt in ipairs(self.players) do
-            pjt:update(dt)
-        end
+        for i, pjt in ipairs(self.projectiles) do pjt:update(dt) end
     end
     pjt_layer.draw = function(self)
-        for i, pjt in ipairs(self.players) do
-            pjt:draw()
-        end
+        for uuid, pjt in pairs(self.projectiles) do pjt:draw() end
     end
 
     if pargs.server then server = GameServer(pargs.port) end
@@ -143,5 +139,10 @@ function love.draw()
     --    local deg = (math.deg(lfg.mouse.angle) + 360) % 360
     --    love.graphics.print(string.format("Angle[%.2f]: %.2f {%.2f} {[%i]}", lfg.mouse.distance, lfg.mouse.angle, math.deg(lfg.mouse.angle), deg), 10, 70)
     --end
+end
+
+
+function love.mousepressed(...)
+  if user then user:mousepressed(...) end
 end
 

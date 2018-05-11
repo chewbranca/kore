@@ -12,7 +12,7 @@ function init(client, payload)
         is_bootstrapped = false,
         client = nil,
         payload = payload,
-        player = nil
+        player = nil,
     }
     setmetatable(self, User)
 
@@ -23,13 +23,11 @@ setmetatable(User, {__call = init})
 
 function User:update(dt)
     local updates = {}
-    local updated = false
     local dir = lfg.get_key_dir() -- FIXME: migrate logic to this module
     local m0_x, m0_y = self.m_x, self.m_y
     local m_x, m_y = love.mouse.getPosition()
 
     if dir and dir ~= self.cdir then
-        updated = true
         self.cdir = cdir
         updates.cdir = lfg.ndirs[dir]
     end
@@ -47,8 +45,23 @@ function User:update(dt)
         self.m_y = m_y
     end
 
-    self.updates = updates
-    if updated then self.client:send_player_update(self, updates) end
+    -- send player movement
+    if next(updates) ~= nil then
+        self.client:send_player_update(self, updates)
+    end
+
+    -- send projectiles
+    if self.mouse_updates then
+        for button, m_info in pairs(self.mouse_updates) do
+            if button == "1" then
+                self.client:melee_attack(button, m_info)
+            elseif button == "2" then
+                m_info.spell_name = self.player.spell.name
+                self.client:create_projectile(m_info)
+            end
+        end
+        self.mouse_updates = {}
+    end
 end
 
 
@@ -85,10 +98,41 @@ function User:bootstrap(client)
 end
 
 
+function User:mousepressed(m_x, m_y, button)
+    button = tostring(button)
+    if not self.mouse_updates then self.mouse_updates = {} end
+
+    local w_x = math.floor(love.graphics.getWidth() / 2)
+    local w_y = math.floor(love.graphics.getHeight() / 2)
+    local angle = lume.angle(w_x, w_y, m_x, m_y)
+    local distance = lume.distance(w_x, w_y, m_x, m_y)
+    local dx, dy = lume.vector(angle, distance)
+    local n_dx = dx / distance
+    local n_dy = dy / distance
+    local dir = lfg.ndirs[lfg.angle_to_dir(angle)]
+
+    -- last update wins
+    self.mouse_updates[button] = {
+        x = self:x(),
+        y = self:y(),
+        dx = n_dx,
+        dy = n_dy,
+        w_x = w_x,
+        w_y = w_y,
+        angle = angle,
+        distance = distance,
+        cdir = dir,
+        puid = self:puid(),
+    }
+end
+
+
 function User:x() return self.player.x end
 function User:y() return self.player.y end
 function User:w() return self.player.w end
 function User:h() return self.player.h end
+function User:cdir() return self.player.cdir end
+function User:puid() return self.player.uuid end
 
 
 return User
