@@ -97,7 +97,7 @@ function love.update(dt)
     if user then
         if not is_user_bootstrapped then
             -- FIXME: DIRTY HACKS
-            -- need a full {client,server};update(dt) cycle before this works
+            -- need a full {client,server}:update(dt) cycle before this works
             -- otherwise the create_player message gets lost
             -- TODO: fix this or make this not terrible
             if ready_for_user then
