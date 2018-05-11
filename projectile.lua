@@ -85,9 +85,8 @@ end
 
 function Projectile:tick(dt)
     self.age = self.age + dt
-    local x = self.x + dt *self.dx * self.speed
-    local y = self.y + dt *self.dy * self.speed
-    self.x, self.y = x, y
+    self.x = self.x + dt *self.dx * self.speed
+    self.y = self.y + dt *self.dy * self.speed
 end
 
 
