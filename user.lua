@@ -2,12 +2,21 @@ local User = {}
 User.__index = User
 
 function init(client, payload)
+    local m0_x, m0_y = 0, 0
     local m_x, m_y = love.mouse.getPosition()
+    local angle = lume.angle(m0_x, m0_y, m_x, m_y)
+    local distance = lume.distance(m0_x, m0_y, m_x, m_y)
+    local dx, dy = lume.vector(angle, distance)
+
     local uuid = lume.uuid()
 
     local self = {
         m_x = m_x,
         m_y = m_y,
+        m_dx = dx,
+        m_dy = dy,
+        m_angle = angle,
+        m_distance = distance,
         uuid = uuid,
         is_bootstrapped = false,
         client = nil,
@@ -41,8 +50,13 @@ function User:update(dt)
         --updated = true
         --updates.m_x, updates.m_y = m_x, m_y
         --updates.m_dx, updates.m_dy = dx, dy
+        -- TODO: move this into self.mouse = {...} ?
         self.m_x = m_x
         self.m_y = m_y
+        self.m_dx = dx
+        self.m_dy = dy
+        self.m_angle = angle
+        self.m_distance = distance
     end
 
     -- send player movement
@@ -68,15 +82,17 @@ end
 function User:draw()
     -- TODO: draw game UI
     -- TODO: enable FPS and stats logic:
+    -- TODO: add bandwith numbers
+    -- TODO: add ping time
+    -- TODO: add server tps
+    -- TODO: add object stats for players/projectiles/collidables/etc
     -- TODO: add toggle button for displaying these stats
-    --love.graphics.print("Current FPS: "..tostring(love.timer.getFPS( )), 10, 10)
-    --if lfg.player then
-    --    local tl_x, tl_y = lfg.map:convertPixelToTile(lfg.player.x, lfg.player.y)
-    --    love.graphics.print(string.format("Current Pos: (%.2f, %.2f) <%.2f, %.2f>", lfg.player.x, lfg.player.y, tl_x, tl_y), 10, 30)
-    --    love.graphics.print(string.format("Mouse Pos:   (%.2f, %.2f)", lfg.mouse.x, lfg.mouse.y), 10, 50)
-    --    local deg = (math.deg(lfg.mouse.angle) + 360) % 360
-    --    love.graphics.print(string.format("Angle[%.2f]: %.2f {%.2f} {[%i]}", lfg.mouse.distance, lfg.mouse.angle, math.deg(lfg.mouse.angle), deg), 10, 70)
-    --end
+    love.graphics.print("Current FPS: "..tostring(love.timer.getFPS()), 10, 10)
+    local tl_x, tl_y = lfg.map:convertPixelToTile(self:x(), self:y())
+    love.graphics.print(string.format("Current Pos: (%.2f, %.2f) <%.2f, %.2f>", self:x(), self:y(), tl_x, tl_y), 10, 30)
+    love.graphics.print(string.format("Mouse Pos:   (%.2f, %.2f)", self.m_x, self.m_y), 10, 50)
+    local deg = (math.deg(self.m_angle) + 360) % 360
+    love.graphics.print(string.format("Angle[%.2f]: %.2f {%.2f} {[%i]}", self.m_distance, self.m_angle, math.deg(self.m_angle), deg), 10, 70)
 end
 
 
@@ -129,6 +145,8 @@ end
 
 function User:x() return self.player.x end
 function User:y() return self.player.y end
+function User:ox() return self.player.ox end
+function User:oy() return self.player.oy end
 function User:w() return self.player.w end
 function User:h() return self.player.h end
 function User:cdir() return self.player.cdir end

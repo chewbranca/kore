@@ -17,7 +17,7 @@ local function init(self, p)
 
     local spell = lfg.get_spell(p.spell_name)
     local am = spell.ams[p.cdir].power
-    local spacing = 50.0
+    local spacing = 100.0
     local uuid = p.uuid or lume.uuid()
     local speed = p.speed or spell.speed or DEFAULT_PJT_SPEED
 
@@ -85,8 +85,9 @@ end
 
 function Projectile:tick(dt)
     self.age = self.age + dt
-    self.x = self.x + dt *self.dx * self.speed
-    self.y = self.y + dt *self.dy * self.speed
+    local x = self.x + dt *self.dx * self.speed
+    local y = self.y + dt *self.dy * self.speed
+    return {x=x, y=y}
 end
 
 

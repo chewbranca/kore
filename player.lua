@@ -34,8 +34,8 @@ local function init(self, args)
         char = char,
         spell = spell,
         --map_inputs = args.map_inputs or true,
-        x = args.x or 250,
-        y = args.y or 250,
+        x = args.x or 350,
+        y = args.y or 350,
         ox = args.ox or spell.as.ox or 0,
         oy = args.oy or spell.as.oy or 0,
         -- TODO: rectify width/height once dual worlds dichotomy resolved

@@ -22,13 +22,16 @@ local function log_client_connected(uuid, data, client)
 end
 
 
-local function init(_Server, port)
+local function init(_Server, port, map, world)
+    assert(map)
     port = port or Server.PORT
     log("OPENING SERVER ON PORT: %s", ppsl(port))
     local server = sock.newServer("*", port)
-    local world = bump.newWorld(1)
+    --local world = bump.newWorld(1)
+    --local world = map.world
 
     local self = setmetatable({
+            map = map,
             clients = {},
             players = {},
             projectiles = {},
@@ -64,19 +67,10 @@ local function init(_Server, port)
         self.players[player.uuid] = player
         self.players[client.clid] = player
         self.players[data.user_id] = player
-        self.world:add(client.clid, player.x, player.y, player.w, player.h)
+        self.world:add(player.uuid, player.x, player.y, player.w, player.h)
         client:send("create_player_ack", {req_id=data.req_id,
             player=player:serialized()})
         self:announce_players()
-    end)
-
-    server:on("announce_self", function(data, client)
-        local ent = Entity(data)
-        local layer = lfg.map.layers["KoreEntitie"]
-        self.players[client.clid] = ent
-        self.world:add(ent.clid, ent.x, ent.y, ent.w, ent.h)
-        self:announce_player(client, data)
-        self:announce_players(client)
     end)
 
     server:on("player_update", function(data, client)
@@ -141,6 +135,7 @@ function Server:broadcast_projectiles(dt)
     if next(self.expired) ~= nil then
         updated = true
         for uuid, pjt in pairs(self.expired) do
+            self.world:remove(uuid)
             serialized.expired[uuid] = pjt:serialized()
         end
     end
@@ -199,12 +194,24 @@ function Server:process_updates(dt)
             local cdir = assert(lfg.ndirs[update.cdir])
             local x = player.x + cdir.x * player.speed * dt
             local y = player.y + cdir.y * player.speed * dt
-            player.x, player.y = x, y
-            update.x, update.y = x, y
+
+            local actual_x, actual_y, cols, len = self.world:move(puid, x, y)
+            -- TODO: switch these updates to action model like with pjt's
+            -- then update by way of player:update_player(action)
+            player.x, player.y = actual_x, actual_y
+            update.x, update.y = actual_x, actual_y
         end
     end
 end
 
+
+local function skip_collisions(item, other)
+    if item.type == "projectile" and item.type == other.type then
+        return false
+    else
+        return "slide"
+    end
+end
 
 function Server:update_projectiles(dt)
     if not self.expired then self.expired = {} end
@@ -215,7 +222,15 @@ function Server:update_projectiles(dt)
         if pjt:is_expired() then
             self.expired[uuid] = pjt
         else
-            pjt:tick(dt)
+            local pact = pjt:tick(dt)
+            local actual_x, actual_y, cols, len = self.world:move(
+                pjt.uuid, pact.x, pact.y, skip_collisions)
+
+            if len > 0 then self.expired[uuid] = pjt end
+
+            pact.x, pact.y = actual_x, actual_y
+            pact.cols, pact.cols_len = cols, len
+            pjt:update_projectile(pact)
         end
     end
 end
