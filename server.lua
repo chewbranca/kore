@@ -93,10 +93,13 @@ local function init(_Server, port, map, world)
     end)
 
     server:on("disconnect", function(data, client)
-        log("SERVER GOT DISCONNECT FROM CLIENT: %s", clid.clid)
-        local player = assert(self.players[client.clid])
-        self.disconnected_players[player.uuid] = true
-        self:remove_player(player, client)
+        log("SERVER GOT DISCONNECT FROM CLIENT: %s", client.clid)
+        if self.players[client.clid] then
+            local player = assert(self.players[client.clid])
+            self.disconnected_players[player.uuid] = true
+            self:remove_player(player, client)
+        -- else: client did not fully connect
+        end
     end)
 
     return self
