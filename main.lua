@@ -26,7 +26,6 @@ local GameUser = require("user")
 local client, layer, map, player, server, world
 
 local is_user_bootstrapped = false
-local dev_mode = false
 
 
 local function parse_args()
@@ -126,7 +125,7 @@ function love.draw()
             --love.graphics.setColor(255, 0, 0)
             --map:bump_draw(world, -tx, -ty, 1, 1)
             love.graphics.translate(-tx, -ty)
-            if (user and dev_mode) then
+            if (user and user.debug) then
                 love.graphics.points(math.floor(px), math.floor(py))
                 love.graphics.rectangle("line", user:x() - user:ox(), user:y() - user:oy(), 128, 128)
             end
@@ -152,3 +151,7 @@ function love.mousepressed(...)
   if user then user:mousepressed(...) end
 end
 
+
+function love.keypressed(...)
+    if user then user:keypressed(...) end
+end
