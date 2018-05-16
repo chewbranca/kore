@@ -184,8 +184,10 @@ function User:keypressed(key, scancode, isrepeat)
         --love.window.setFullscreen(self.fullscreen, "desktop")
         if self.fullscreen then
             love.window.setMode(self.d_width, self.d_height, fst)
+            lfg.map:resize(d_width, d_height)
         else
             love.window.setMode(self.w_width, self.w_height, fst)
+            lfg.map:resize(w_width, w_height)
         end
     end
 end
