@@ -207,7 +207,9 @@ function lfg.process_animation(v)
             a.position = tonumber(string.match(v, "^(%d+)$"))
         elseif k == "type" and (v == "looped" or v == "back_forth" or v == "play_once") then
             a.type = v
-
+            -- TODO: handle other options
+            if v == "play_once" then a.on_loop = "pauseAtEnd" end
+        else
             lfg.dbg("UNKNOWN ANIMATION PAIR[%s]: %s = %s", type(v), k,v)
         end
     end
@@ -243,13 +245,20 @@ function lfg.Character(c)
         local ndir = lfg.ndirs[dir]
         char.ams[dir] = {}
         char.ams[ndir] = {}
-        for name, am in pairs(char.as.animations) do
-            local begin = am.position + 1
-            local fin   = am.position + am.frames
-            local fdur = am.duration / am.frames
+        for name, am_def in pairs(char.as.animations) do
+            local begin = am_def.position + 1
+            local fin   = am_def.position + am_def.frames
+            local fdur = am_def.duration / am_def.frames
             local frames = string.format("%s-%s", begin, fin)
+            local grid = char.grid(frames, row)
 
-            local am = assert(anim8.newAnimation(char.grid(frames, row), fdur))
+            -- on_loop param can't be nil
+            local am
+            if am_def.on_loop then
+                am = assert(anim8.newAnimation(grid, fdur), am_def.on_loop)
+            else
+                am = assert(anim8.newAnimation(grid, fdur))
+            end
             char.ams[dir][name] = am
             char.ams[ndir][name] = am
         end
@@ -295,7 +304,9 @@ function lfg.Spell(s)
             local fdur = am.duration / am.frames
             local frames = string.format("%s-%s", begin, fin)
 
-            local am = assert(anim8.newAnimation(spell.grid(frames, row), fdur))
+            --local onLoop = am.type
+            local am = assert(anim8.newAnimation(
+                spell.grid(frames, row), fdur))
             spell.ams[dir][name] = am
             spell.ams[ndir][name] = am
         end

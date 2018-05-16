@@ -1,7 +1,7 @@
 local User = {}
 User.__index = User
 
-function init(client, payload)
+function init(self, payload)
     local m0_x, m0_y = 0, 0
     local m_x, m_y = love.mouse.getPosition()
     local angle = lume.angle(m0_x, m0_y, m_x, m_y)
@@ -31,6 +31,8 @@ setmetatable(User, {__call = init})
 
 
 function User:update(dt)
+    if self.player:is_dead() then return false end
+
     local updates = {}
     local dir = lfg.get_key_dir() -- FIXME: migrate logic to this module
     local m0_x, m0_y = self.m_x, self.m_y
@@ -39,6 +41,8 @@ function User:update(dt)
     if dir and dir ~= self.cdir then
         self.cdir = cdir
         updates.cdir = lfg.ndirs[dir]
+        -- TODO: guarantee self.player is set
+        updates.state = self.player.STATES.run
     end
 
     if m0_x ~= m_x or m0_y ~= m_y then
@@ -67,9 +71,11 @@ function User:update(dt)
     -- send projectiles
     if self.mouse_updates then
         for button, m_info in pairs(self.mouse_updates) do
-            if button == "1" then
+            -- TODO: reenable melee attacks
+            -- however, one button mouse works well for trackpads
+            if false and button == "1" then
                 self.client:melee_attack(button, m_info)
-            elseif button == "2" then
+            elseif button == "1" or button == "2" then
                 m_info.spell_name = self.player.spell.name
                 self.client:create_projectile(m_info)
             end
@@ -93,6 +99,11 @@ function User:draw()
     love.graphics.print(string.format("Mouse Pos:   (%.2f, %.2f)", self.m_x, self.m_y), 10, 50)
     local deg = (math.deg(self.m_angle) + 360) % 360
     love.graphics.print(string.format("Angle[%.2f]: %.2f {%.2f} {[%i]}", self.m_distance, self.m_angle, math.deg(self.m_angle), deg), 10, 70)
+
+    if self.player:is_dead() then
+        -- TODO: properly fetch the respawn value timer
+        love.graphics.print(string.format("YOU HAVE DIED!!! Respawning in %i...", 7 - self.player.respawn_timer), 500, 500)
+    end
 end
 
 

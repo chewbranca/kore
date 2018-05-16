@@ -33,14 +33,18 @@ local function init(_Server, port, map, world)
     local self = setmetatable({
             map = map,
             clients = {},
+            dead_players = {},
+            disconnected_players = {},
             players = {},
             projectiles = {},
+            player_hits = {},
             updates = {},
             server = server,
             world = world,
             tick_rate = 1.0 / 40.0,
             tick_tock = 0,
             ticks = 0,
+            age = 0,
         }, Server)
 
     server:on("connect", function(data, client)
@@ -61,12 +65,12 @@ local function init(_Server, port, map, world)
         local player = GamePlayer({
             name = data.payload.name,
             character = data.payload.character,
-            spell = data.payload.spell,
+            spell_name = data.payload.spell_name,
             user_id = data.user_id,
         })
+        log("CREATING PLAYER: %s", ppsl(player:serialized()))
         self.players[player.uuid] = player
         self.players[client.clid] = player
-        self.players[data.user_id] = player
         self.world:add(player.uuid, player.x, player.y, player.w, player.h)
         client:send("create_player_ack", {req_id=data.req_id,
             player=player:serialized()})
@@ -88,9 +92,26 @@ local function init(_Server, port, map, world)
         self:broadcast_event("created_projectile", pjt:serialized())
     end)
 
+    server:on("disconnect", function(data, client)
+        log("SERVER GOT DISCONNECT FROM CLIENT: %s", clid.clid)
+        local player = assert(self.players[client.clid])
+        self.disconnected_players[player.uuid] = true
+        self:remove_player(player, client)
+    end)
+
     return self
 end
 setmetatable(Server, {__call = init})
+
+
+function Server:remove_player(player, client)
+    local puid = player.uuid
+    self.world:remove(puid)
+    self.players[puid] = nil
+    self.dead_players[puid] = nil
+    self.player_hits[puid] = nil
+    self.players[client.clid] = nil
+end
 
 
 function Server:broadcast_event(etype, data)
@@ -147,7 +168,12 @@ end
 
 -- TODO: switch to prioritize update hierarchy
 function Server:broadcast_updates(dt)
-    local payload = {tick = self.ticks, updates = self.updates}
+    local payload = {
+        tick = self.ticks,
+        updates = self.updates,
+        hits = self.player_hits,
+        disconnects = self.disconnected_players,
+    }
     self.server:sendToAll("server_tick", payload)
 end
 
@@ -162,6 +188,7 @@ end
 
 function Server:tick(dt)
     self.tick_tock = self.tick_tock + dt
+    self.age = self.age + dt
 
     if self.tick_tock > self.tick_rate then
         self.ticks = self.ticks + 1
@@ -176,6 +203,8 @@ end
 
 function Server:clear_updates(dt)
     self.updates = {}
+    self.player_hits = {}
+    self.disconnected_players = {}
 end
 
 
@@ -190,7 +219,8 @@ end
 function Server:process_updates(dt)
     for puid, update in pairs(self.updates) do
         local player = assert(self.players[puid])
-        if update.cdir then
+        -- don't handle updates for dead players
+        if not self.dead_players[puid] and update.cdir then
             local cdir = assert(lfg.ndirs[update.cdir])
             local x = player.x + cdir.x * player.speed * dt
             local y = player.y + cdir.y * player.speed * dt
@@ -202,10 +232,21 @@ function Server:process_updates(dt)
             update.x, update.y = actual_x, actual_y
         end
     end
+
+    local alive = {}
+    for puid, val in pairs(self.dead_players) do
+        local player = assert(self.players[puid])
+        player:update(dt)
+        if not player:is_dead() then alive[puid] = true end
+    end
+
+    for puid, val in pairs(alive) do self.dead_players[puid] = nil end
 end
 
 
 local function skip_collisions(item, other)
+    -- TODO: skip projectile collisions on dead players
+    -- need access to self.players
     if item.type == "projectile" and item.type == other.type then
         return false
     else
@@ -217,20 +258,36 @@ function Server:update_projectiles(dt)
     if not self.expired then self.expired = {} end
 
     for uuid, pjt in pairs(self.projectiles) do
-        pjt:update(dt)
+        if not self.expired[uuid] then
+            pjt:update(dt)
 
-        if pjt:is_expired() then
-            self.expired[uuid] = pjt
-        else
-            local pact = pjt:tick(dt)
-            local actual_x, actual_y, cols, len = self.world:move(
-                pjt.uuid, pact.x, pact.y, skip_collisions)
+            if pjt:is_expired() then
+                self.expired[uuid] = pjt
+            else
+                local pact = pjt:tick(dt)
+                local actual_x, actual_y, cols, len = self.world:move(
+                    pjt.uuid, pact.x, pact.y, skip_collisions)
 
-            if len > 0 then self.expired[uuid] = pjt end
+                if len > 0 then
+                    self.expired[uuid] = pjt
+                    for i, col in ipairs(cols) do
+                        --log("{%i}{{%.2f}}COL IS[%i]: %s -- PJT.UUID: %s -- COL OTHER: %s", self.ticks, self.age, i, col.item, pjt.uuid, col.other)
+                        assert(uuid == col.item)
+                        local player = self.players[col.other]
+                        if player and pjt.puid ~= player.uuid  and not self.dead_players[player.uuid] then
+                            local action = player:hit(col)
+                            if player:is_dead() then
+                                self.dead_players[player.uuid] = true
+                            end
+                            self.player_hits[player.uuid] = action
+                        end
+                    end
+                end
 
-            pact.x, pact.y = actual_x, actual_y
-            pact.cols, pact.cols_len = cols, len
-            pjt:update_projectile(pact)
+                pact.x, pact.y = actual_x, actual_y
+                pact.cols, pact.cols_len = cols, len
+                pjt:update_projectile(pact)
+            end
         end
     end
 end

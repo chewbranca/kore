@@ -111,7 +111,23 @@ local function init(_Client, host, port)
         self.curr_updates = data.updates
         for puid, update in pairs(data.updates) do
             local player = assert(self.players[puid])
-            player:update_player(update, tick)
+            player:update_player(update, data.tick)
+        end
+        for puid, hit in pairs(data.hits) do
+            local player = assert(self.players[puid])
+            player:get_hit(hit)
+        end
+        for puid, tval in pairs(data.disconnects) do
+            assert(self.players[puid])
+            local layer = lfg.map.layers["KorePlayers"]
+            -- TODO: switch player layer.players to use puid as key
+            local index
+            for i, player in ipairs(layer.players) do
+                if player.uuid == puid then index = i end
+            end
+            assert(index)
+            table.remove(layer.players, index)
+            self.players[puid] = nil
         end
     end)
 
@@ -125,7 +141,7 @@ local function init(_Client, host, port)
                 local layer = lfg.map.layers["KorePlayers"]
                 table.insert(layer.players, player)
             end
-            player:update_player(pobj)
+            player:update_player(pobj, data.tick)
         end
     end)
 
@@ -144,7 +160,7 @@ end
 
 
 function Client:create_player(user, payload)
-    log("CREATING PLAYER: %s", ppsl(payload))
+    --log("CREATING PLAYER: %s", ppsl(payload))
     local req_id = lume.uuid()
     local req = {
         action  = "create_player",
