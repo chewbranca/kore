@@ -10,8 +10,12 @@ function init(self, payload)
 
     local uuid = lume.uuid()
 
+    local d_width, d_height = love.window.getDesktopDimensions()
+    local w_width, w_height = love.graphics.getDimensions()
+
     local self = {
         debug = false,
+        fullscreen = false,
         m_x = m_x,
         m_y = m_y,
         m_dx = dx,
@@ -23,6 +27,10 @@ function init(self, payload)
         client = nil,
         payload = payload,
         player = nil,
+        d_width = d_width,
+        d_height = d_height,
+        w_width = w_width,
+        w_height = w_height,
     }
     setmetatable(self, User)
 
@@ -161,6 +169,17 @@ function User:keypressed(key, scancode, isrepeat)
     if isrepeat then return false end
 
     if scancode == "f1" then self.debug = not self.debug end
+
+    if scancode == "f2" then
+        self.fullscreen = not self.fullscreen
+        local fst = {fullscreen=self.fullscreen, fullscreentype="desktop"}
+        --love.window.setFullscreen(self.fullscreen, "desktop")
+        if self.fullscreen then
+            love.window.setMode(self.d_width, self.d_height, fst)
+        else
+            love.window.setMode(self.w_width, self.w_height, fst)
+        end
+    end
 end
 
 
