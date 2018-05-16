@@ -88,7 +88,7 @@ function love.load(args)
 end
 
 
-local ready_for_user = false
+local connect_delay = 3.0
 function love.update(dt)
     if server then server:update(dt) end
     if client then client:update(dt) end
@@ -98,10 +98,10 @@ function love.update(dt)
             -- need a full {client,server}:update(dt) cycle before this works
             -- otherwise the create_player message gets lost
             -- TODO: fix this or make this not terrible
-            if ready_for_user then
+            if connect_delay <= 0.0 then
                 is_user_bootstrapped = user:bootstrap(client)
             else
-                ready_for_user = true
+                connect_delay = connect_delay - dt
             end
         else
             user:update(dt)
