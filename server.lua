@@ -38,6 +38,7 @@ local function init(_Server, port, map, world)
             players = {},
             projectiles = {},
             player_hits = {},
+            scores = {},
             updates = {},
             server = server,
             world = world,
@@ -72,6 +73,7 @@ local function init(_Server, port, map, world)
         self.players[player.uuid] = player
         self.players[client.clid] = player
         self.world:add(player.uuid, player.x, player.y, player.w, player.h)
+        self.scores[player.uuid] = 0
         client:send("create_player_ack", {req_id=data.req_id,
             player=player:serialized()})
         self:announce_players()
@@ -114,6 +116,7 @@ function Server:remove_player(player, client)
     self.dead_players[puid] = nil
     self.player_hits[puid] = nil
     self.players[client.clid] = nil
+    self.scores[player.uuid] = nil
 end
 
 
@@ -176,6 +179,7 @@ function Server:broadcast_updates(dt)
         updates = self.updates,
         hits = self.player_hits,
         disconnects = self.disconnected_players,
+        scores = self.scores,
     }
     self.server:sendToAll("server_tick", payload)
 end
@@ -280,6 +284,7 @@ function Server:update_projectiles(dt)
                         if player and pjt.puid ~= player.uuid  and not self.dead_players[player.uuid] then
                             local action = player:hit(col)
                             if player:is_dead() then
+                                self.scores[pjt.puid] = self.scores[pjt.puid] + 1
                                 self.dead_players[player.uuid] = true
                             end
                             self.player_hits[player.uuid] = action

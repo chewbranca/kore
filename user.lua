@@ -31,6 +31,7 @@ function init(self, payload)
         d_height = d_height,
         w_width = w_width,
         w_height = w_height,
+        scores = {},
     }
     setmetatable(self, User)
 
@@ -115,6 +116,13 @@ function User:draw()
         -- TODO: properly fetch the respawn value timer
         love.graphics.print(string.format("YOU HAVE DIED!!! Respawning in %i...", 7 - self.player.respawn_timer), 500, 500)
     end
+
+    local count = 1
+    love.graphics.print("Scores:", 10, 100)
+    for _,score in ipairs(self.scores) do
+        love.graphics.print(string.format("%8.8s | %i", score.name, score.score ), 10, 100 + count * 20)
+        count = count + 1
+    end
 end
 
 
@@ -180,6 +188,11 @@ function User:keypressed(key, scancode, isrepeat)
             love.window.setMode(self.w_width, self.w_height, fst)
         end
     end
+end
+
+
+function User:update_scores(scores, tick)
+    self.scores = scores
 end
 
 

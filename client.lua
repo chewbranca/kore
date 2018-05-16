@@ -28,6 +28,7 @@ local function init(_Client, host, port)
             reqs = reqs,
             last_tick = 0,
             curr_updates = {},
+            user = nil,
         }, Client)
 
     client:on("connect", function(data)
@@ -118,16 +119,30 @@ local function init(_Client, host, port)
             player:get_hit(hit)
         end
         for puid, tval in pairs(data.disconnects) do
-            assert(self.players[puid])
-            local layer = lfg.map.layers["KorePlayers"]
-            -- TODO: switch player layer.players to use puid as key
-            local index
-            for i, player in ipairs(layer.players) do
-                if player.uuid == puid then index = i end
+            if self.players[puid] then
+                local layer = lfg.map.layers["KorePlayers"]
+                -- TODO: switch player layer.players to use puid as key
+                local index
+                for i, player in ipairs(layer.players) do
+                    if player.uuid == puid then index = i end
+                end
+                assert(index)
+                table.remove(layer.players, index)
+                self.players[puid] = nil
+            -- else: disconnected player in last frame, never announced
             end
-            assert(index)
-            table.remove(layer.players, index)
-            self.players[puid] = nil
+        end
+        if self.user then
+            local scores = {}
+            for puid, score in pairs(data.scores) do
+                local player = self.players[puid]
+                if player then
+                    table.insert(scores,
+                        {puid=puid, score=score, name=player.name})
+                end
+            end
+            table.sort(scores, function(a, b) return a.score > b.score end)
+            self.user:update_scores(scores, data.tick)
         end
     end)
 
@@ -160,6 +175,9 @@ end
 
 
 function Client:create_player(user, payload)
+    -- TODO: find a better place to set this
+    self.user = user
+
     --log("CREATING PLAYER: %s", ppsl(payload))
     local req_id = lume.uuid()
     local req = {
