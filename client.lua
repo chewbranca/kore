@@ -110,13 +110,19 @@ local function init(_Client, host, port)
         --log("GOT SERVER_TICK[%i]: %s", data.tick, ppsl(data))
         self.last_tick = data.tick
         self.curr_updates = data.updates
+        -- TODO: better handle bootsrapping. We can see a tick before player announce
+        -- which can result in none of the players existing
         for puid, update in pairs(data.updates) do
-            local player = assert(self.players[puid])
-            player:update_player(update, data.tick)
+            if self.players[puid] then
+                local player = assert(self.players[puid])
+                player:update_player(update, data.tick)
+            end
         end
         for puid, hit in pairs(data.hits) do
-            local player = assert(self.players[puid])
-            player:get_hit(hit)
+            if self.players[puid] then
+                local player = assert(self.players[puid])
+                player:get_hit(hit)
+            end
         end
         for puid, tval in pairs(data.disconnects) do
             if self.players[puid] then
