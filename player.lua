@@ -26,12 +26,11 @@ Player.STATES = STATES
 local function init(self, args)
     assert(args.character)
 
-    --local clid = client.luuid
-    local name = args.name or string.format("FOO: %s", clid)
     local char = lfg.get_character(args.character)
     local spell_name = args.spell_name or DEFAULT_SPELL_NAME
     local spell = lfg.get_spell(spell_name)
     local uuid = args.uuid or lume.uuid()
+    local name = args.name or string.format("FOO: %s", uuid)
     local cdir = args.cdir or DEFAULT_DIR
     local state = args.state or DEFAULT_STATE
     local speed = args.speed or DEFAULT_SPEED
@@ -42,7 +41,6 @@ local function init(self, args)
         name = name,
         char = char,
         spell = spell,
-        --map_inputs = args.map_inputs or true,
         hp = STARTING_HP,
         x = x,
         y = y,
@@ -54,7 +52,6 @@ local function init(self, args)
         vx = args.vx or 200,
         vy = args.vy or 200,
         age = 0,
-        --clid = clid,
         uuid = uuid,
         state = state,
         cdir = cdir,

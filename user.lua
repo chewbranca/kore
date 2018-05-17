@@ -10,7 +10,12 @@ function init(self, payload)
 
     local uuid = lume.uuid()
 
+    local d_width, d_height = love.window.getDesktopDimensions()
+    local w_width, w_height = love.graphics.getDimensions()
+
     local self = {
+        debug = false,
+        fullscreen = false,
         m_x = m_x,
         m_y = m_y,
         m_dx = dx,
@@ -22,6 +27,11 @@ function init(self, payload)
         client = nil,
         payload = payload,
         player = nil,
+        d_width = d_width,
+        d_height = d_height,
+        w_width = w_width,
+        w_height = w_height,
+        scores = {},
     }
     setmetatable(self, User)
 
@@ -93,16 +103,25 @@ function User:draw()
     -- TODO: add server tps
     -- TODO: add object stats for players/projectiles/collidables/etc
     -- TODO: add toggle button for displaying these stats
-    love.graphics.print("Current FPS: "..tostring(love.timer.getFPS()), 10, 10)
-    local tl_x, tl_y = lfg.map:convertPixelToTile(self:x(), self:y())
-    love.graphics.print(string.format("Current Pos: (%.2f, %.2f) <%.2f, %.2f>", self:x(), self:y(), tl_x, tl_y), 10, 30)
-    love.graphics.print(string.format("Mouse Pos:   (%.2f, %.2f)", self.m_x, self.m_y), 10, 50)
-    local deg = (math.deg(self.m_angle) + 360) % 360
-    love.graphics.print(string.format("Angle[%.2f]: %.2f {%.2f} {[%i]}", self.m_distance, self.m_angle, math.deg(self.m_angle), deg), 10, 70)
+    if self.debug then
+        love.graphics.print("Current FPS: "..tostring(love.timer.getFPS()), 10, 10)
+        local tl_x, tl_y = lfg.map:convertPixelToTile(self:x(), self:y())
+        love.graphics.print(string.format("Current Pos: (%.2f, %.2f) <%.2f, %.2f>", self:x(), self:y(), tl_x, tl_y), 10, 30)
+        love.graphics.print(string.format("Mouse Pos:   (%.2f, %.2f)", self.m_x, self.m_y), 10, 50)
+        local deg = (math.deg(self.m_angle) + 360) % 360
+        love.graphics.print(string.format("Angle[%.2f]: %.2f {%.2f} {[%i]}", self.m_distance, self.m_angle, math.deg(self.m_angle), deg), 10, 70)
+    end
 
     if self.player:is_dead() then
         -- TODO: properly fetch the respawn value timer
         love.graphics.print(string.format("YOU HAVE DIED!!! Respawning in %i...", 7 - self.player.respawn_timer), 500, 500)
+    end
+
+    local count = 1
+    love.graphics.print("Scores:", 10, 100)
+    for _,score in ipairs(self.scores) do
+        love.graphics.print(string.format("%8.8s | %i", score.name, score.score ), 10, 100 + count * 20)
+        count = count + 1
     end
 end
 
@@ -151,6 +170,31 @@ function User:mousepressed(m_x, m_y, button)
         cdir = dir,
         puid = self:puid(),
     }
+end
+
+
+function User:keypressed(key, scancode, isrepeat)
+    if isrepeat then return false end
+
+    if scancode == "f1" then self.debug = not self.debug end
+
+    if scancode == "f2" then
+        self.fullscreen = not self.fullscreen
+        local fst = {fullscreen=self.fullscreen, fullscreentype="desktop"}
+        --love.window.setFullscreen(self.fullscreen, "desktop")
+        if self.fullscreen then
+            love.window.setMode(self.d_width, self.d_height, fst)
+            lfg.map:resize(d_width, d_height)
+        else
+            love.window.setMode(self.w_width, self.w_height, fst)
+            lfg.map:resize(w_width, w_height)
+        end
+    end
+end
+
+
+function User:update_scores(scores, tick)
+    self.scores = scores
 end
 
 

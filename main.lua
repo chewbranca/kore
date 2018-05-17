@@ -26,7 +26,6 @@ local GameUser = require("user")
 local client, layer, map, player, server, world
 
 local is_user_bootstrapped = false
-local dev_mode = false
 
 
 local function parse_args()
@@ -88,7 +87,7 @@ function love.load(args)
 end
 
 
-local ready_for_user = false
+local connect_delay = 3.0
 function love.update(dt)
     if server then server:update(dt) end
     if client then client:update(dt) end
@@ -98,10 +97,10 @@ function love.update(dt)
             -- need a full {client,server}:update(dt) cycle before this works
             -- otherwise the create_player message gets lost
             -- TODO: fix this or make this not terrible
-            if ready_for_user then
+            if connect_delay <= 0.0 then
                 is_user_bootstrapped = user:bootstrap(client)
             else
-                ready_for_user = true
+                connect_delay = connect_delay - dt
             end
         else
             user:update(dt)
@@ -126,7 +125,7 @@ function love.draw()
             --love.graphics.setColor(255, 0, 0)
             --map:bump_draw(world, -tx, -ty, 1, 1)
             love.graphics.translate(-tx, -ty)
-            if (user and dev_mode) then
+            if (user and user.debug) then
                 love.graphics.points(math.floor(px), math.floor(py))
                 love.graphics.rectangle("line", user:x() - user:ox(), user:y() - user:oy(), 128, 128)
             end
@@ -152,3 +151,7 @@ function love.mousepressed(...)
   if user then user:mousepressed(...) end
 end
 
+
+function love.keypressed(...)
+    if user then user:keypressed(...) end
+end
