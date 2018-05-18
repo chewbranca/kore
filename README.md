@@ -1,35 +1,76 @@
-# kore
+# Kore
 Kore - The Rise of Persephone
 
-# Give it a whirl
+# Give it a Whirl
 
-For the moment you'll need to clone the lfg repo
-[https://github.com/chewbranca/lfg](https://github.com/chewbranca/lfg) to
-acquire the Flare Game assets. This repo is separate for the time being because
-it's quite large. Eventually Kore will contain the subset of game assets used
-from Flare Game to avoid needing the extra clone while keeping the asset size
-minimal.
+## First install Love 2D
+
+Grab the appropriate binary from [https://love2d.org/](https://love2d.org/)
+
+## Grab the Kore Game
 
 ```
-mkdir src && cd src
-git clone https://github.com/chewbranca/lfg.git
 git clone https://github.com/chewbranca/kore.git
-ln -s ~/src/lfg/flare-game/ ~/src/kore/flare-game
+cd kore
 ```
 
+or download a zip without using git
 
 ```
-love . --server --client --character "Skeleton" --spell "Lightning" --user
+wget https://github.com/chewbranca/kore/archive/master.zip
+unzip master.zip
 ```
 
-and spin up another client with:
+or just click on
+[https://github.com/chewbranca/kore/archive/master.zip](https://github.com/chewbranca/kore/archive/master.zip)
+
+## Run a Server
 
 ```
-optirun love . --client --character "Zombie" --spell "Channel" --us
+love . --server
 ```
 
-Or see the command line options with:
+## Now run a client (or many clients) to connect to the local server
 
 ```
-love . --help
+love .  --client --user --character "Zombie" --spell "Lightning"
 ```
+
+```
+love .  --client --user --character "Minotaur" --spell "Fireball"
+```
+
+```
+love .  --client --user --character "Skeleton" --spell "Channel"
+```
+
+## Connect to a Remote Server
+
+To connect to a remote server, you'll need to supply the `--host` param with the
+appropriate host, and you'll probably also want to specify a name too with the
+`--name` parameter.
+
+```
+love .  --client --user --name "FOO" --host 1.2.3.4 --character "Zombie" --spell "Lightning"
+```
+
+# Running Kore on OSX
+
+Because there is not yet a menu system in Kore, you must run this from the
+command line. If you installed Love2D using the binaries linked above, you need
+to invoke the commands through the app package. Basically you just need to do:
+
+```
+/Applications/love.app/Contents/MacOS/love .  --client --user --name "FOO" --host 1.2.3.4 --character "Zombie" --spell "Lightning"
+```
+
+# Running Kore on Linux
+
+All the standard commands should work fine.
+
+# Running Kore on Windows
+
+You'll need to make a shortcut to love.ex, and then edit it to include the path
+to Kore and the relevant command options detailed above. More details her:
+[https://love2d.org/wiki/Getting_Started](https://love2d.org/wiki/Getting_Started)
+
