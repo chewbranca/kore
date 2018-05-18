@@ -74,3 +74,21 @@ You'll need to make a shortcut to love.ex, and then edit it to include the path
 to Kore and the relevant command options detailed above. More details her:
 [https://love2d.org/wiki/Getting_Started](https://love2d.org/wiki/Getting_Started)
 
+
+# Cosmetic Decisions!
+
+You can choose between one of three characters, and one of three spells. These
+are all functionally identical, but they add a lot of style points.
+
+Available character options for the command line setting (choose one):
+
+  * --character "Minotaur"
+  * --character "Skeleton"
+  * --character "Zombie"
+
+Available spell options for the command line setting (choose one):
+
+  * --spell "Fireball"
+  * --spell "Channel"
+  * --spell "Lightning"
+
