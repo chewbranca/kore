@@ -64,11 +64,14 @@ local function init(_Server, port, map, world)
 
     server:on("create_player", function(data, client)
         log("GOT CREATE PLAYER: %s", ppsl(data))
+        local x, y = self:rand_xy()
         local player = GamePlayer({
             name = data.payload.name,
             character = data.payload.character,
             spell_name = data.payload.spell_name,
             user_id = data.user_id,
+            x = x,
+            y = y,
         })
         log("CREATING PLAYER: %s", ppsl(player:serialized()))
         self.players[player.uuid] = player
@@ -305,6 +308,15 @@ function Server:update_projectiles(dt)
             end
         end
     end
+end
+
+
+function Server:rand_xy()
+    local width = self.map.width * self.map.tilewidth
+    local height = self.map.height * self.map.tileheight
+    local x = math.random(width * 0.30, width * 0.70)
+    local y = math.random(height * 0.30, height * 0.70)
+    return x, y
 end
 
 
