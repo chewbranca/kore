@@ -25,6 +25,8 @@ Player.STATES = STATES
 
 local function init(self, args)
     assert(args.character)
+    assert(args.x)
+    assert(args.y)
 
     local char = lfg.get_character(args.character)
     local spell_name = args.spell_name or DEFAULT_SPELL_NAME
@@ -34,16 +36,14 @@ local function init(self, args)
     local cdir = args.cdir or DEFAULT_DIR
     local state = args.state or DEFAULT_STATE
     local speed = args.speed or DEFAULT_SPEED
-    local x = args.x or math.random(500, 2500)
-    local y = args.y or math.random(350, 1200)
 
     local self = {
         name = name,
         char = char,
         spell = spell,
         hp = STARTING_HP,
-        x = x,
-        y = y,
+        x = args.x,
+        y = args.y,
         ox = args.ox or spell.as.ox or 0,
         oy = args.oy or spell.as.oy or 0,
         -- TODO: rectify width/height once dual worlds dichotomy resolved
