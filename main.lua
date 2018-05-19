@@ -39,6 +39,7 @@ local function parse_args()
     parser:option("--character", "What character to use; one of [Minotaur, Zombie, Skeleton", "Minotaur")
     parser:option("--spell", "What spell to use; one of [Fireball, Lightning, Channel", "Fireball")
     parser:option("--name", "Are you really a user?", string.format("FOO{%s}", lume.uuid()))
+    parser:option("--map", "Map file to use", "map_lfg_demo.lua")
 
     return parser:parse()
 end
@@ -50,7 +51,7 @@ function love.load(args)
     local pargs = parse_args()
     log("GOT PARSED ARGS: %s", ppsl(pargs))
 
-    assert(lfg.init({map_file="map_lfg_demo.lua"}, pargs))
+    assert(lfg.init({map_file=pargs.map}, pargs))
     map = lfg.map
     world = lfg.world
 
