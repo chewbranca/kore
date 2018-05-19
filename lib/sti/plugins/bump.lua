@@ -94,8 +94,11 @@ return {
 
 
 							local t = {
-								x          = (x-1) * map.tilewidth  + tile.offset.x + map.offsetx,
-								y          = (y-1) * map.tileheight + tile.offset.y + map.offsety,
+								--x          = (x-1) * map.tilewidth  + tile.offset.x + map.offsetx,
+								--y          = (y-1) * map.tileheight + tile.offset.y + map.offsety,
+								x          = (x - y - 1) * (tile.width / 2) + tile.offset.x + map.width * tile.width / 2 - tile.width / 2,
+								--y          = (x + y - 1) * (tile.height / 2) + tile.offset.y,
+								y          = (x + y - 1) * 16,
 								width      = tile.width,
 								height     = tile.height,
 								layer      = layer,
