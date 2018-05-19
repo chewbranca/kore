@@ -123,22 +123,18 @@ function love.draw()
         do
             love.graphics.setColor(255, 255, 255)
             map:draw(-tx, -ty)
-            --love.graphics.setColor(255, 0, 0)
-            --map:bump_draw(world, -tx, -ty, 1, 1)
+
+            if (user and user.debug) then
+                love.graphics.setColor(255, 0, 0)
+                map:bump_draw(world, -tx, -ty, 1, 1)
+                love.graphics.setColor(255, 255, 255)
+            end
+
             love.graphics.translate(-tx, -ty)
             if (user and user.debug) then
                 love.graphics.points(math.floor(px), math.floor(py))
                 love.graphics.rectangle("line", user:x() - user:ox(), user:y() - user:oy(), 128, 128)
             end
-        end
-        love.graphics.pop()
-
-        love.graphics.push()
-        do
-            -- TODO: why is this still drawing on a rectangle grid?
-            -- TODO: where should this go? why not in the upper block?
-            love.graphics.setColor(255, 0, 0)
-            map:bump_draw(world, -tx, -ty, 1, 1)
         end
         love.graphics.pop()
 
