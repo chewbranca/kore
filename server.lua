@@ -31,6 +31,7 @@ local function init(_Server, port, map, world)
     --local world = map.world
 
     local self = setmetatable({
+            noclip = false,
             map = map,
             clients = {},
             dead_players = {},
@@ -232,11 +233,17 @@ function Server:process_updates(dt)
             local x = player.x + cdir.x * player.speed * dt
             local y = player.y + cdir.y * player.speed * dt
 
-            local actual_x, actual_y, cols, len = self.world:move(puid, x, y)
-            -- TODO: switch these updates to action model like with pjt's
-            -- then update by way of player:update_player(action)
-            player.x, player.y = actual_x, actual_y
-            update.x, update.y = actual_x, actual_y
+            if self.noclip then
+                self.world:update(puid, x, y)
+                player.x, player.y = x, y
+                update.x, update.y = x, y
+            else
+                local actual_x, actual_y, cols, len = self.world:move(puid, x, y)
+                -- TODO: switch these updates to action model like with pjt's
+                -- then update by way of player:update_player(action)
+                player.x, player.y = actual_x, actual_y
+                update.x, update.y = actual_x, actual_y
+            end
         end
     end
 
