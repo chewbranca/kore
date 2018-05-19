@@ -1,6 +1,7 @@
 
 local argparse = require("lib.argparse")
 local serpent = require("lib.serpent")
+local repl = require("lib.repl")
 
 lume = require("lib.lume")
 
@@ -72,7 +73,10 @@ function love.load(args)
         for uuid, pjt in pairs(self.projectiles) do pjt:draw() end
     end
 
-    if pargs.server then server = GameServer(pargs.port, map, world) end
+    if pargs.server then
+       repl.start()
+       server = GameServer(pargs.port, map, world)
+    end
     if pargs.client then
         client = GameClient(pargs.host, pargs.port)
         if pargs.user then
