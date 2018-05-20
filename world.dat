@@ -51,6 +51,12 @@ Character{
     animation = "characters/zombie.txt"
 }
 
+Character{
+    name = "Wyvern Adult",
+    sprite = "wyvern/wyvern_adult.png",
+    animation = "characters/wyvern_adult.txt"
+}
+
 Spell{
     name = "Fireball",
     sprite = "art_src/spells/fireball.png",

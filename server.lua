@@ -22,9 +22,12 @@ local function log_client_connected(uuid, data, client)
 end
 
 
-local function init(_Server, port, map, world)
-    assert(map)
-    port = port or Server.PORT
+local function init(_Server, args)
+    assert(args.map)
+    assert(args.world)
+    local map = args.map
+    local world = args.world
+    local port = args.port or Server.PORT
     log("OPENING SERVER ON PORT: %s", ppsl(port))
     local server = sock.newServer("*", port)
     --local world = bump.newWorld(1)
@@ -47,7 +50,19 @@ local function init(_Server, port, map, world)
             tick_tock = 0,
             ticks = 0,
             age = 0,
+            uuid = lume.uuid(),
         }, Server)
+
+    if args.kur then
+        local kur = self:make_kur()
+        self:store_player(kur, self.uuid)
+        self.kur = kur
+        self.kur_target = nil
+        self.kur_target_timer = 0.0
+        self.kur_target_max_timer = 5.0
+        self.kur_fireball_timer = 0.0
+        self.kur_fireball_delay = 1.0
+    end
 
     server:on("connect", function(data, client)
         local uuid = lume.uuid()
@@ -74,10 +89,7 @@ local function init(_Server, port, map, world)
             y = y,
         })
         log("CREATING PLAYER: %s", ppsl(player:serialized()))
-        self.players[player.uuid] = player
-        self.players[client.clid] = player
-        self.world:add(player.uuid, player.x, player.y, player.w, player.h)
-        self.scores[player.uuid] = 0
+        self:store_player(player, client.clid)
         client:send("create_player_ack", {req_id=data.req_id,
             player=player:serialized()})
         self:announce_players()
@@ -193,6 +205,7 @@ function Server:update(dt)
     self.server:update(dt)
     self:process_updates(dt)
     self:update_projectiles(dt)
+    if self.kur then self:update_kur(dt) end
     self:tick(dt)
 end
 
@@ -236,7 +249,7 @@ function Server:process_updates(dt)
             local x = player.x + cdir.x * player.speed * dt
             local y = player.y + cdir.y * player.speed * dt
 
-            if self.noclip then
+            if self.noclip or (self.kur and puid == self.kur.uuid) then
                 self.world:update(puid, x, y)
                 player.x, player.y = x, y
                 update.x, update.y = x, y
@@ -317,6 +330,151 @@ function Server:rand_xy()
     local x = math.random(width * 0.30, width * 0.70)
     local y = math.random(height * 0.30, height * 0.70)
     return x, y
+end
+
+
+function Server:store_player(player, clid)
+    self.players[player.uuid] = player
+    self.players[clid] = player
+    self.world:add(player.uuid, player.x, player.y, player.w, player.h)
+    self.scores[player.uuid] = 0
+end
+
+
+function Server:make_kur()
+    local x, y = self:rand_xy()
+    local args = {
+        x = x,
+        y = y,
+        sx = 2,
+        sy = 2,
+        name = "Kur",
+        hp = 10000,
+        character = "Wyvern Adult",
+        spell = "Fireball",
+        user_id = "ENEMY",
+        speed = 70,
+        w = 256,
+        h = 256,
+    }
+    log("CREATING KUR WITH: %s", ppsl(args))
+    return GamePlayer(args)
+end
+
+
+function Server:update_kur(dt)
+    local kur = self.kur
+
+    self.kur_target_timer = self.kur_target_timer - dt
+    if self.kur_target_timer < 0 then
+        --log("LOOKING FOR NEW KUR TARGET[%s]...", kur.uuid)
+        self.kur_target_timer = self.kur_target_max_timer + self.kur_target_timer
+
+        -- find new target
+        local player_vectors = {}
+        local k_x, k_y = kur.x, kur.y
+        for puid, player in pairs(self.players) do
+            if player.uuid ~= kur.uuid then
+                local p_x, p_y = player.x, player.y
+                local angle = lume.angle(k_x, k_y, p_x, p_y)
+                local distance = lume.distance(k_x, k_y, p_x, p_y)
+                local dx, dy = lume.vector(angle, distance)
+                local n_dx = dx / distance
+                local n_dy = dy / distance
+                local dir = lfg.ndirs[lfg.angle_to_dir(angle)]
+                table.insert(player_vectors, {
+                    distance = distance,
+                    puid = player.uuid,
+                    player = player,
+                    x = p_x,
+                    y = p_y,
+                    dx = n_dx,
+                    dy = n_dy,
+                    dir = dir,
+                    angle = angle,
+                })
+            end
+        end
+        if next(player_vectors) ~= nil then
+            table.sort(player_vectors, function(a, b) return a.distance < b.distance end)
+            local p_t = player_vectors[1]
+            --log("KUR FOUND NEW TARGET[%s]: %s", kur.uuid, player_vectors[1].player.uuid)
+            self.kur_target = player_vectors[1]
+        else
+            self.kur_target = nil
+        end
+    end
+
+    if self.kur_target then
+        --log("KUR[%s] IS TARGETING: %s [%s]", kur.uuid, self.kur_target.puid, self.kur_target.player.uuid)
+        local k_x, k_y = kur.x, kur.y
+        local t_x, t_y = self.kur_target.player.x, self.kur_target.player.y
+        --log("<%.2f, %.2f> --> {%.2f, %.2f}", k_x, k_y, t_x, t_y)
+        local angle = lume.angle(k_x, k_y, t_x, t_y)
+        local distance = lume.distance(k_x, k_y, t_x, t_y)
+        local dx, dy = lume.vector(angle, distance)
+        local n_dx = dx / distance
+        local n_dy = dy / distance
+        local dir = lfg.ndirs[lfg.angle_to_dir(angle)]
+        local cdir = lfg.ndirs[dir]
+        kur.x = kur.x + cdir.x * kur.speed * dt
+        kur.y = kur.y + cdir.y * kur.speed * dt
+        if kur.cdir ~= dir then
+            kur.cdir = dir
+            kur:switch_animation(kur.cdir, kur.state)
+        end
+        self.world:update(kur.uuid, kur.x, kur.y)
+        self.updates[kur.uuid] = kur:serialized()
+
+        -- maybe shoot fireballs
+        self.kur_fireball_timer = self.kur_fireball_timer + dt
+        if self.kur_fireball_timer > self.kur_fireball_delay then
+            self.kur_fireball_timer = self.kur_fireball_timer - self.kur_fireball_delay + - math.random()
+            local args = {
+                spell_name = "Fireball",
+                x = k_x,
+                y = k_y,
+                dx = n_dx,
+                dy = n_dy,
+                puid = kur.uuid,
+                cdir = dir,
+                spacing = 300,
+            }
+            local pjt = Projectile(args)
+            self.projectiles[pjt.uuid] = pjt
+            self.world:add(pjt.uuid, pjt.x, pjt.y, pjt.w, pjt.h)
+            self:broadcast_event("created_projectile", pjt:serialized())
+
+            -- fire second fireball
+            local angle2 = angle + math.pi / 4
+            local dx2, dy2 = lume.vector(angle2, distance)
+            local n_dx2 = dx2 / distance
+            local n_dy2 = dy2 / distance
+            args.dx = n_dx2
+            args.dy = n_dy2
+
+            local pjt2 = Projectile(args)
+            self.projectiles[pjt2.uuid] = pjt2
+            self.world:add(pjt2.uuid, pjt2.x, pjt2.y, pjt2.w, pjt2.h)
+            self:broadcast_event("created_projectile", pjt2:serialized())
+
+            -- fire third fireball
+            local angle3 = angle - math.pi / 4
+            local dx3, dy3 = lume.vector(angle3, distance)
+            local n_dx3 = dx3 / distance
+            local n_dy3 = dy3 / distance
+            args.dx = n_dx3
+            args.dy = n_dy3
+
+            local pjt3 = Projectile(args)
+            self.projectiles[pjt3.uuid] = pjt3
+            self.world:add(pjt3.uuid, pjt3.x, pjt3.y, pjt3.w, pjt3.h)
+            self:broadcast_event("created_projectile", pjt3:serialized())
+        end
+    else
+        -- pick random vector to use?
+        -- or should we just stand still?
+    end
 end
 
 

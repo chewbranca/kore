@@ -41,11 +41,13 @@ local function init(self, args)
         name = name,
         char = char,
         spell = spell,
-        hp = STARTING_HP,
+        hp = args.hp or STARTING_HP,
         x = args.x,
         y = args.y,
         ox = args.ox or spell.as.ox or 0,
         oy = args.oy or spell.as.oy or 0,
+        sx = args.sx or 1,
+        sy = args.sy or 1,
         -- TODO: rectify width/height once dual worlds dichotomy resolved
         w = args.w or spell.as.w or 128,
         h = args.h or spell.as.h or 128,
@@ -176,7 +178,7 @@ function Player:draw()
     end
     love.graphics.pop()
     love.graphics.setColor(255, 255, 255)
-    self.am:draw(self.char.sprite, self.x, self.y, 0, 1, 1, self.ox, self.oy)
+    self.am:draw(self.char.sprite, self.x, self.y, 0, self.sx, self.sy, self.ox, self.oy)
 end
 
 
@@ -187,6 +189,8 @@ function Player:serialized()
         name = self.name,
         x = self.x,
         y = self.y,
+        sx = self.sx,
+        sy = self.sy,
         vx = self.vx,
         vy = self.vy,
         clid = self.clid,
@@ -194,6 +198,7 @@ function Player:serialized()
         age = self.age,
         state = self.state,
         cdir = self.cdir,
+        hp = self.hp,
     }
 end
 

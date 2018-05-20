@@ -34,6 +34,7 @@ local function parse_args()
     parser:flag("--server", "Host a server")
     parser:flag("--client", "Connect to host")
     parser:flag("--user", "Are you a user?")
+    parser:flag("--no_kur", "Scared of Kur?")
     parser:option("--host", "Server host to connect to", "localhost")
     parser:option("--port", "Server port to connect to", GameServer.PORT)
     parser:option("--character", "What character to use; one of [Minotaur, Zombie, Skeleton", "Minotaur")
@@ -73,7 +74,14 @@ function love.load(args)
         for uuid, pjt in pairs(self.projectiles) do pjt:draw() end
     end
 
-    if pargs.server then server = GameServer(pargs.port, map, world) end
+    if pargs.server then
+        server = GameServer({
+            port = pargs.port,
+            map = map,
+            world = world,
+            kur = not pargs.no_kur,
+        })
+    end
     if pargs.client then
         client = GameClient(pargs.host, pargs.port)
         if pargs.user then
