@@ -429,7 +429,7 @@ function Server:update_kur(dt)
         -- maybe shoot fireballs
         self.kur_fireball_timer = self.kur_fireball_timer + dt
         if self.kur_fireball_timer > self.kur_fireball_delay then
-            self.kur_fireball_timer = self.kur_fireball_timer - self.kur_fireball_delay + - math.random()
+            self.kur_fireball_timer = self.kur_fireball_timer - self.kur_fireball_delay - math.random()
             local args = {
                 spell_name = "Fireball",
                 x = k_x,
