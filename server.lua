@@ -246,8 +246,15 @@ function Server:process_updates(dt)
         -- don't handle updates for dead players
         if not self.dead_players[puid] and update.cdir then
             local cdir = assert(lfg.ndirs[update.cdir])
-            local x = player.x + cdir.x * player.speed * dt
-            local y = player.y + cdir.y * player.speed * dt
+            local speed
+            if math.abs(cdir.x) + math.abs(cdir.y) == 2 then
+                speed = player.speed * 0.71
+            else
+                speed = player.speed
+            end
+
+            local x = player.x + cdir.x * speed * dt
+            local y = player.y + cdir.y * speed * dt
 
             if self.noclip or (self.kur and puid == self.kur.uuid) then
                 self.world:update(puid, x, y)
