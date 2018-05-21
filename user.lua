@@ -145,6 +145,7 @@ end
 
 
 function User:mousepressed(m_x, m_y, button)
+    if(not self.player) then return end
     button = tostring(button)
     if not self.mouse_updates then self.mouse_updates = {} end
 
