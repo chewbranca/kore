@@ -287,7 +287,7 @@ local function skip_collisions(item, other)
     if item.type == "projectile" and item.type == other.type then
         return false
     else
-        return "slide"
+        return "touch"
     end
 end
 
