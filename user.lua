@@ -191,6 +191,9 @@ function User:keypressed(key, scancode, isrepeat)
             lfg.map:resize(w_width, w_height)
         end
     end
+    if key == "q" and love.keyboard.isDown("lctrl", "rctrl", "capslock") then
+      love.event.quit()
+    end
 end
 
 
