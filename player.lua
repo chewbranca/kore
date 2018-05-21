@@ -174,7 +174,8 @@ function Player:draw()
     love.graphics.push()
     do
         love.graphics.setColor(255, 0, 0)
-        love.graphics.print(string.format("HP: %i", self.hp), self.x + 10, self.y - 45)
+        love.graphics.rectangle("fill", self.x, self.y - 45, self.hp * 20, 10)
+        love.graphics.print(self.name, self.x + 10, self.y - 60)
     end
     love.graphics.pop()
     love.graphics.setColor(255, 255, 255)
