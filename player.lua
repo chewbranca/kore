@@ -10,7 +10,7 @@ local STATES = {
 }
 
 local DEFAULT_DIR         = "D_S"
-local DEFAULT_SPEED       = 300
+local DEFAULT_SPEED       = 400
 local DEFAULT_SPELL_NAME  = "Fireball"
 local DEFAULT_STATE       = STATES.stand
 
