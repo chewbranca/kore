@@ -49,8 +49,11 @@ local function init(self, args)
         sx = args.sx or 1,
         sy = args.sy or 1,
         -- TODO: rectify width/height once dual worlds dichotomy resolved
-        w = args.w or spell.as.w or 128,
-        h = args.h or spell.as.h or 128,
+        --w = args.w or char.as.w or 64,
+        --h = args.h or char.as.h or 32,
+        -- set player box to 64x32
+        w = args.w or 64,
+        h = args.h or 32,
         vx = args.vx or 200,
         vy = args.vy or 200,
         age = 0,
@@ -60,7 +63,8 @@ local function init(self, args)
         user_id = args.user_id,
         speed = speed,
         am_timer = 0.0,
-        respawn_timer = 0.0
+        respawn_timer = 0.0,
+        type = "player",
     }
     setmetatable(self, Player)
     self.last_x, self.last_y = self.x, self.y

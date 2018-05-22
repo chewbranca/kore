@@ -17,7 +17,7 @@ local function init(self, p)
 
     local spell = lfg.get_spell(p.spell_name)
     local am = spell.ams[p.cdir].power
-    local spacing = p.spacing or 100.0
+    local spacing = p.spacing or 10.0
     local uuid = p.uuid or lume.uuid()
     local speed = p.speed or spell.speed or DEFAULT_PJT_SPEED
 
@@ -38,6 +38,7 @@ local function init(self, p)
         puid = p.puid,
         uuid = uuid,
         speed = speed,
+        type = "projectile",
     }
     setmetatable(self, Projectile)
 

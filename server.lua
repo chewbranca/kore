@@ -97,7 +97,7 @@ local function init(_Server, args)
 
     server:on("player_update", function(data, client)
         local player = assert(self.players[client.clid])
-        -- TODO: switch to world:move(...)
+        -- TODO: turn this into a queue of items
         self.updates[player.uuid] = data
         -- TODO: add update ack or track frame id and send frame ack
     end)
@@ -106,7 +106,7 @@ local function init(_Server, args)
         --log("CREATING NEW PROJECTILE WITH: %s", ppsl(data))
         local pjt = Projectile(data)
         self.projectiles[pjt.uuid] = pjt
-        world:add(pjt.uuid, pjt.x, pjt.y, pjt.w, pjt.h)
+        self.world:add(pjt, pjt.x, pjt.y, pjt.w, pjt.h)
         self:broadcast_event("created_projectile", pjt:serialized())
     end)
 
@@ -127,7 +127,7 @@ setmetatable(Server, {__call = init})
 
 function Server:remove_player(player, client)
     local puid = player.uuid
-    self.world:remove(puid)
+    self.world:remove(player)
     self.players[puid] = nil
     self.dead_players[puid] = nil
     self.player_hits[puid] = nil
@@ -178,7 +178,7 @@ function Server:broadcast_projectiles(dt)
     if next(self.expired) ~= nil then
         updated = true
         for uuid, pjt in pairs(self.expired) do
-            self.world:remove(uuid)
+            self.world:remove(pjt)
             serialized.expired[uuid] = pjt:serialized()
         end
     end
@@ -240,6 +240,88 @@ function Server:clear_projectiles(dt)
 end
 
 
+local function skip_collisions(item, other)
+    local default = "slide"
+    local is_projectile = item.type == "projectile" or other.type == "projectile"
+    local is_player = item.type == "player" or other.type == "player"
+    local is_kur = item.type == "Kur" or other.type == "Kur"
+
+    -- projectile collided with player
+    if is_projectile and is_player then
+        local pjt, player
+        if item.type == "projectile" then
+            assert(other.type == "player")
+            pjt = item
+            player = other
+        else
+            assert(item.type == "player")
+            assert(other.type == "projectile")
+            pjt = other
+            player = item
+        end
+
+        if pjt.puid == player.uuid then
+            return false
+        else
+            return default
+        end
+    -- projectile collided with projectile
+    elseif is_projectile and item.type == other.type then
+        if item.puid == other.puid then
+            return false
+        -- projectiles cancel between users
+        else
+            return default
+        end
+    -- collision with Kur
+    elseif is_kur then
+        local kur, player, projectile
+        if item.type == "Kur" then
+            kur = item
+            if other.type == "player" then
+                player = other
+            elseif other.type == "projectile" then
+                projectile = other
+            else
+                return false
+            end
+        else
+            assert(other.type == "Kur")
+            kur = other
+            if item.type == "player" then
+                player = item
+            elseif item.type == "projectile" then
+                projectile = item
+            else
+                return false
+            end
+        end
+
+        if player then
+            return false
+        elseif projectile then
+            if projectile.puid == kur.uuid then
+                return false
+            else
+                return default
+            end
+        else
+            -- Kur has no movement collision
+            return false
+        end
+    -- collision with collision tile layer object
+    elseif other.layer and other.layer.properties.collidable then
+        return default
+    -- collision with collidable object
+    elseif other.properties and other.properties.collidable then
+        return default
+    -- skip collisions by default
+    else
+        return false
+    end
+end
+
+
 function Server:process_updates(dt)
     for puid, update in pairs(self.updates) do
         local player = assert(self.players[puid])
@@ -257,11 +339,11 @@ function Server:process_updates(dt)
             local y = player.y + cdir.y * speed * dt
 
             if self.noclip or (self.kur and puid == self.kur.uuid) then
-                self.world:update(puid, x, y)
+                self.world:update(player, x, y)
                 player.x, player.y = x, y
-                update.x, update.y = x, y
             else
-                local actual_x, actual_y, cols, len = self.world:move(puid, x, y)
+                local actual_x, actual_y, cols, len = self.world:move(
+                    player, x, y, skip_collisions)
                 -- TODO: switch these updates to action model like with pjt's
                 -- then update by way of player:update_player(action)
                 player.x, player.y = actual_x, actual_y
@@ -281,16 +363,6 @@ function Server:process_updates(dt)
 end
 
 
-local function skip_collisions(item, other)
-    -- TODO: skip projectile collisions on dead players
-    -- need access to self.players
-    if item.type == "projectile" and item.type == other.type then
-        return false
-    else
-        return "touch"
-    end
-end
-
 function Server:update_projectiles(dt)
     if not self.expired then self.expired = {} end
 
@@ -303,21 +375,22 @@ function Server:update_projectiles(dt)
             else
                 local pact = pjt:tick(dt)
                 local actual_x, actual_y, cols, len = self.world:move(
-                    pjt.uuid, pact.x, pact.y, skip_collisions)
+                    pjt, pact.x, pact.y, skip_collisions)
 
                 if len > 0 then
                     self.expired[uuid] = pjt
                     for i, col in ipairs(cols) do
-                        --log("{%i}{{%.2f}}COL IS[%i]: %s -- PJT.UUID: %s -- COL OTHER: %s", self.ticks, self.age, i, col.item, pjt.uuid, col.other)
-                        assert(uuid == col.item)
-                        local player = self.players[col.other]
-                        if player and pjt.puid ~= player.uuid  and not self.dead_players[player.uuid] then
-                            local action = player:hit(col)
-                            if player:is_dead() then
-                                self.scores[pjt.puid] = self.scores[pjt.puid] + 1
-                                self.dead_players[player.uuid] = true
+                        assert(pjt == col.item)
+                        if col.other.type == "player" or col.other.type == "Kur" then
+                            local player = col.other
+                            if player and pjt.puid ~= player.uuid  and not self.dead_players[player.uuid] then
+                                local action = player:hit(col)
+                                if player:is_dead() then
+                                    self.scores[pjt.puid] = self.scores[pjt.puid] + 1
+                                    self.dead_players[player.uuid] = true
+                                end
+                                self.player_hits[player.uuid] = action
                             end
-                            self.player_hits[player.uuid] = action
                         end
                     end
                 end
@@ -343,7 +416,7 @@ end
 function Server:store_player(player, clid)
     self.players[player.uuid] = player
     self.players[clid] = player
-    self.world:add(player.uuid, player.x, player.y, player.w, player.h)
+    self.world:add(player, player.x, player.y, player.w, player.h)
     self.scores[player.uuid] = 0
 end
 
@@ -356,16 +429,18 @@ function Server:make_kur()
         sx = 2,
         sy = 2,
         name = "Kur",
-        hp = 10000,
+        starting_hp = 1000,
         character = "Wyvern Adult",
         spell = "Fireball",
         user_id = "ENEMY",
         speed = 70,
         w = 256,
-        h = 256,
+        h = 128,
     }
     log("CREATING KUR WITH: %s", ppsl(args))
-    return GamePlayer(args)
+    local kur = GamePlayer(args)
+    kur.type = "Kur" -- Kur!!
+    return kur
 end
 
 
@@ -412,7 +487,7 @@ function Server:update_kur(dt)
         end
     end
 
-    if self.kur_target then
+    if self.kur_target and not kur:is_dead() then
         --log("KUR[%s] IS TARGETING: %s [%s]", kur.uuid, self.kur_target.puid, self.kur_target.player.uuid)
         local k_x, k_y = kur.x, kur.y
         local t_x, t_y = self.kur_target.player.x, self.kur_target.player.y
@@ -430,7 +505,7 @@ function Server:update_kur(dt)
             kur.cdir = dir
             kur:switch_animation(kur.cdir, kur.state)
         end
-        self.world:update(kur.uuid, kur.x, kur.y)
+        self.world:update(kur, kur.x, kur.y)
         self.updates[kur.uuid] = kur:serialized()
 
         -- maybe shoot fireballs
@@ -445,11 +520,11 @@ function Server:update_kur(dt)
                 dy = n_dy,
                 puid = kur.uuid,
                 cdir = dir,
-                spacing = 300,
+                spacing = 30,
             }
             local pjt = Projectile(args)
             self.projectiles[pjt.uuid] = pjt
-            self.world:add(pjt.uuid, pjt.x, pjt.y, pjt.w, pjt.h)
+            self.world:add(pjt, pjt.x, pjt.y, pjt.w, pjt.h)
             self:broadcast_event("created_projectile", pjt:serialized())
 
             -- fire second fireball
@@ -462,7 +537,7 @@ function Server:update_kur(dt)
 
             local pjt2 = Projectile(args)
             self.projectiles[pjt2.uuid] = pjt2
-            self.world:add(pjt2.uuid, pjt2.x, pjt2.y, pjt2.w, pjt2.h)
+            self.world:add(pjt2, pjt2.x, pjt2.y, pjt2.w, pjt2.h)
             self:broadcast_event("created_projectile", pjt2:serialized())
 
             -- fire third fireball
@@ -475,7 +550,7 @@ function Server:update_kur(dt)
 
             local pjt3 = Projectile(args)
             self.projectiles[pjt3.uuid] = pjt3
-            self.world:add(pjt3.uuid, pjt3.x, pjt3.y, pjt3.w, pjt3.h)
+            self.world:add(pjt3, pjt3.x, pjt3.y, pjt3.w, pjt3.h)
             self:broadcast_event("created_projectile", pjt3:serialized())
         end
     else
