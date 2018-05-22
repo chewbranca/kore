@@ -15,7 +15,7 @@ local DEFAULT_SPELL_NAME  = "Fireball"
 local DEFAULT_STATE       = STATES.stand
 
 local RESPAWN_TIMER       = 7.0
-local STARTING_HP         = 5
+local DEFAULT_HP          = 5
 
 local Player = {}
 Player.__index = Player
@@ -41,7 +41,8 @@ local function init(self, args)
         name = name,
         char = char,
         spell = spell,
-        hp = args.hp or STARTING_HP,
+        hp = args.hp or args.starting_hp or DEFAULT_HP,
+        starting_hp = args.starting_hp or DEFAULT_HP,
         x = args.x,
         y = args.y,
         ox = args.ox or spell.as.ox or 0,
@@ -177,8 +178,10 @@ end
 function Player:draw()
     love.graphics.push()
     do
+        local max_bar_width = 100
+        local bar_width = (self.hp / self.starting_hp) * max_bar_width
         love.graphics.setColor(255, 0, 0)
-        love.graphics.rectangle("fill", self.x, self.y - 45, self.hp * 20, 10)
+        love.graphics.rectangle("fill", self.x, self.y - 45, bar_width, 10)
         love.graphics.print(self.name, self.x + 10, self.y - 60)
     end
     love.graphics.pop()
@@ -204,12 +207,13 @@ function Player:serialized()
         state = self.state,
         cdir = self.cdir,
         hp = self.hp,
+        starting_hp = self.starting_hp,
     }
 end
 
 
 function Player:respawn()
-    self.hp = STARTING_HP
+    self.hp = self.starting_hp
     self.respawn_timer = 0
     self.state = STATES.stand
     self:switch_animation(self.cdir, self.state)
