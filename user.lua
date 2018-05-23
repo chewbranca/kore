@@ -1,6 +1,8 @@
 local User = {}
 User.__index = User
 
+local AUTO_PROJECTILE_DELAY = 0.20
+
 function init(self, payload)
     local m0_x, m0_y = 0, 0
     local m_x, m_y = love.mouse.getPosition()
@@ -32,6 +34,7 @@ function init(self, payload)
         w_width = w_width,
         w_height = w_height,
         scores = {},
+        auto_projectile_timer = 0.0
     }
     setmetatable(self, User)
 
@@ -76,6 +79,18 @@ function User:update(dt)
     -- send player movement
     if next(updates) ~= nil then
         self.client:send_player_update(self, updates)
+    end
+
+    -- check if mouse is down and no button updates
+    self.auto_projectile_timer = self.auto_projectile_timer + dt
+    if self.auto_projectile_timer > AUTO_PROJECTILE_DELAY and love.mouse.isDown(1, 2) then
+        -- don't do diff as we let this get big
+        self.auto_projectile_timer = 0.0
+        if not (self.mouse_updates["1"] or self.mouse_updates["2"]) then
+            if not self.mouse_updates then self.mouse_updates = {} end
+            local m_x, m_y = love.mouse.getPosition()
+            self.mouse_updates["1"] = self:trigger_mouseaction(m_x, m_y, button)
+        end
     end
 
     -- send projectiles
@@ -145,9 +160,14 @@ end
 
 
 function User:mousepressed(m_x, m_y, button)
-    if(not self.player) then return end
     button = tostring(button)
     if not self.mouse_updates then self.mouse_updates = {} end
+    self.mouse_updates[button] = self:trigger_mouseaction(m_x, m_y, button)
+end
+
+
+function User:trigger_mouseaction(m_x, m_y, button)
+    if(not self.player) then return end
 
     local w_x = math.floor(love.graphics.getWidth() / 2)
     local w_y = math.floor(love.graphics.getHeight() / 2)
@@ -159,7 +179,7 @@ function User:mousepressed(m_x, m_y, button)
     local dir = lfg.ndirs[lfg.angle_to_dir(angle)]
 
     -- last update wins
-    self.mouse_updates[button] = {
+    return {
         x = self:x(),
         y = self:y(),
         dx = n_dx,
