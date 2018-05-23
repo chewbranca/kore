@@ -1,3 +1,5 @@
+local console = require("lib.console")
+
 local User = {}
 User.__index = User
 
@@ -37,6 +39,7 @@ function init(self, payload)
         auto_projectile_timer = 0.0
     }
     setmetatable(self, User)
+    console.initialize({on_input = function(txt) self.client:send_msg(txt) end})
 
     return self
 end
@@ -44,7 +47,7 @@ setmetatable(User, {__call = init})
 
 
 function User:update(dt)
-    if self.player:is_dead() then return false end
+    if self.player:is_dead() or console.toggled() then return false end
 
     local updates = {}
     local dir = lfg.get_key_dir() -- FIXME: migrate logic to this module
@@ -138,6 +141,7 @@ function User:draw()
         love.graphics.print(string.format("%8.8s | %i", score.name, score.score ), 10, 100 + count * 20)
         count = count + 1
     end
+    if console.toggled() then console.draw() end
 end
 
 
@@ -160,9 +164,13 @@ end
 
 
 function User:mousepressed(m_x, m_y, button)
-    button = tostring(button)
-    if not self.mouse_updates then self.mouse_updates = {} end
-    self.mouse_updates[button] = self:trigger_mouseaction(m_x, m_y, button)
+    if console.toggled() then
+        console.mousepressed(m_x, m_y, button)
+    else
+        button = tostring(button)
+        if not self.mouse_updates then self.mouse_updates = {} end
+        self.mouse_updates[button] = self:trigger_mouseaction(m_x, m_y, button)
+    end
 end
 
 
@@ -195,6 +203,22 @@ end
 
 
 function User:keypressed(key, scancode, isrepeat)
+    if key == "q" and love.keyboard.isDown("lctrl", "rctrl", "capslock") then
+      love.event.quit()
+    end
+
+    if console.toggled() then
+        if key == "escape" then
+            console.off()
+        else
+            console.keypressed(key, scancode, isrepeat)
+        end
+        return
+    end
+    if key == "return" then
+        return console.on()
+    end
+
     if isrepeat then return false end
 
     if scancode == "f1" then self.debug = not self.debug end
@@ -215,17 +239,19 @@ function User:keypressed(key, scancode, isrepeat)
     if scancode == "f4" then
         self.client:send_player_respawn(self)
     end
-
-    if key == "q" and love.keyboard.isDown("lctrl", "rctrl", "capslock") then
-      love.event.quit()
-    end
 end
 
+function User:textinput(...)
+    if console.toggled() then console.textinput(...) end
+end
 
 function User:update_scores(scores, tick)
     self.scores = scores
 end
 
+function User:print(...)
+    console.print(...)
+end
 
 function User:x() return self.player.x end
 function User:y() return self.player.y end

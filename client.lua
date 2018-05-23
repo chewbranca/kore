@@ -1,5 +1,6 @@
 local lume = require("lib.lume")
 local sock = require("lib.sock")
+local console = require("lib.console")
 
 local lfg = require("lfg")
 
@@ -152,6 +153,7 @@ local function init(_Client, host, port)
         end
         for _i, msg_data in pairs(data.messages) do
             log("GOT MESSAGE: %s", msg_data.msg)
+            self.user:print(msg_data.msg)
         end
     end)
 
