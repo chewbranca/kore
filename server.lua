@@ -26,6 +26,16 @@ local function init(_Server, args)
     assert(args.map)
     assert(args.world)
     local map = args.map
+
+    -- load respawn points
+    local respawn_points = {}
+    for i, objs in pairs(map.layers["spawn"].data) do
+        for j, obj in pairs(objs) do
+            local x, y = map:convertTileToPixel(i, j)
+            table.insert(respawn_points, {x=x+obj.offset.x, y=y+obj.offset.y})
+        end
+    end
+
     local world = args.world
     local port = args.port or Server.PORT
     log("OPENING SERVER ON PORT: %s", ppsl(port))
@@ -42,6 +52,7 @@ local function init(_Server, args)
             players = {},
             projectiles = {},
             player_hits = {},
+            respawn_points = respawn_points,
             scores = {},
             updates = {},
             server = server,
@@ -79,7 +90,7 @@ local function init(_Server, args)
 
     server:on("create_player", function(data, client)
         log("GOT CREATE PLAYER: %s", ppsl(data))
-        local x, y = self:rand_xy()
+        local x, y = self:rand_spawn_xy()
         local player = GamePlayer({
             name = data.payload.name,
             character = data.payload.character,
@@ -117,6 +128,17 @@ local function init(_Server, args)
             self.disconnected_players[player.uuid] = true
             self:remove_player(player, client)
         -- else: client did not fully connect
+        end
+    end)
+
+    server:on("player_respawn_request", function(data, client)
+        if self.players[client.clid] then
+            local player = assert(self.players[client.clid])
+            local x, y = self:rand_spawn_xy()
+            local respawn_loc = {x=x, y=y}
+            local action = player:kill(respawn_loc)
+            self.dead_players[player.uuid] = true
+            self.player_hits[player.uuid] = action
         end
     end)
 
@@ -356,7 +378,13 @@ function Server:process_updates(dt)
     for puid, val in pairs(self.dead_players) do
         local player = assert(self.players[puid])
         player:update(dt)
-        if not player:is_dead() then alive[puid] = true end
+        if not player:is_dead() then
+            -- player should have respawned to random loc,
+            -- make sure we update world position and notify other clients
+            self.world:update(player, player.x, player.y)
+            alive[puid] = true
+            self.updates[puid] = player:serialized()
+        end
     end
 
     for puid, val in pairs(alive) do self.dead_players[puid] = nil end
@@ -386,6 +414,11 @@ function Server:update_projectiles(dt)
                             if player and pjt.puid ~= player.uuid  and not self.dead_players[player.uuid] then
                                 local action = player:hit(col)
                                 if player:is_dead() then
+                                    local x, y =self:rand_spawn_xy()
+                                    local respawn_loc = {x=x, y=y}
+                                    action.respawn_loc = respawn_loc
+                                    player.respawn_loc = respawn_loc
+                                    self.updates[player.uuid] = player:serialized()
                                     self.scores[pjt.puid] = self.scores[pjt.puid] + 1
                                     self.dead_players[player.uuid] = true
                                 end
@@ -411,6 +444,16 @@ function Server:rand_xy()
     local y = math.random(height * 0.30, height * 0.70)
     return x, y
 end
+
+
+function Server:rand_spawn_xy()
+    local cnt = #self.respawn_points
+    local idx = math.random(cnt)
+    local spawn = self.respawn_points[idx]
+
+    return spawn.x, spawn.y
+end
+
 
 
 function Server:store_player(player, clid)

@@ -191,6 +191,11 @@ function User:keypressed(key, scancode, isrepeat)
             lfg.map:resize(w_width, w_height)
         end
     end
+
+    if scancode == "f4" then
+        self.client:send_player_respawn(self)
+    end
+
     if key == "q" and love.keyboard.isDown("lctrl", "rctrl", "capslock") then
       love.event.quit()
     end

@@ -202,6 +202,16 @@ function Client:send_player_update(user, updates)
 end
 
 
+function Client:send_player_respawn(user)
+    local payload = {
+        user_id = user.uuid,
+        puid = user:puid(),
+        action = "respawn",
+    }
+    self.client:send("player_respawn_request", payload)
+end
+
+
 function Client:create_projectile(m_info)
     self.client:send("create_projectile", m_info)
 end

@@ -65,6 +65,7 @@ local function init(self, args)
         speed = speed,
         am_timer = 0.0,
         respawn_timer = 0.0,
+        respawn_loc = nil,
         type = "player",
     }
     setmetatable(self, Player)
@@ -103,12 +104,29 @@ function Player:hit()
 end
 
 
+function Player:kill(respawn_loc)
+    self.hp = 0
+    self.state = STATES.dead
+    self.respawn_loc = assert(respawn_loc)
+    assert(self:is_dead())
+    return {
+        hp = self.hp,
+        state = self.state,
+        type = "hit",
+        respawn_loc = respawn_loc,
+    }
+end
+
+
 function Player:get_hit(action)
     assert(action.type == "hit")
     if action.hp then self.hp = action.hp end
     if action.state then
         self.state = action.state
         self:switch_animation(self.cdir, self.state)
+    end
+    if self:is_dead() and action.respawn_loc then
+        self.respawn_loc = action.respawn_loc
     end
 end
 
@@ -208,12 +226,18 @@ function Player:serialized()
         cdir = self.cdir,
         hp = self.hp,
         starting_hp = self.starting_hp,
+        respawn_loc = self.respawn_loc,
     }
 end
 
 
 function Player:respawn()
     self.hp = self.starting_hp
+    if self.respawn_loc then
+        self.x = assert(self.respawn_loc.x)
+        self.y = assert(self.respawn_loc.y)
+        self.respawn_loc = nil
+    end
     self.respawn_timer = 0
     self.state = STATES.stand
     self:switch_animation(self.cdir, self.state)
