@@ -143,9 +143,14 @@ local function init(_Server, args)
         end
     end)
 
-    server:on("send_message", function(data, client)
-        if data.msg and data.clid == client.clid then
-            self:send_msg(msg_payload)
+    server:on("send_msg", function(data, client)
+        if (data.msg and data.clid == client.clid and
+                self.players[client.clid]) then
+            local player = self.players[client.clid]
+            data.msg = string.format("%s :: %s", player:full_name(), data.msg)
+            data.clid = nil
+            data.puid = player.puid
+            self:send_msg(data)
         else
             log("Skipping invalid client message: %s", ppsl(data))
         end
