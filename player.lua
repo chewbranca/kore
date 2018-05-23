@@ -244,5 +244,14 @@ function Player:respawn()
 end
 
 
+function Player:full_name()
+    if self.type == "Kur" then
+        return "Kur"
+    else
+        return string.format("%s<%s>", self.name, self.uuid)
+    end
+end
+
+
 return Player
 

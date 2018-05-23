@@ -49,6 +49,7 @@ local function init(_Server, args)
             clients = {},
             dead_players = {},
             disconnected_players = {},
+            messages = {},
             players = {},
             projectiles = {},
             player_hits = {},
@@ -142,6 +143,14 @@ local function init(_Server, args)
         end
     end)
 
+    server:on("send_message", function(data, client)
+        if data.msg and data.clid == client.clid then
+            self:send_msg(msg_payload)
+        else
+            log("Skipping invalid client message: %s", ppsl(data))
+        end
+    end)
+
     return self
 end
 setmetatable(Server, {__call = init})
@@ -218,6 +227,7 @@ function Server:broadcast_updates(dt)
         hits = self.player_hits,
         disconnects = self.disconnected_players,
         scores = self.scores,
+        messages = self.messages,
     }
     self.server:sendToAll("server_tick", payload)
 end
@@ -251,6 +261,7 @@ function Server:clear_updates(dt)
     self.updates = {}
     self.player_hits = {}
     self.disconnected_players = {}
+    self.messages = {}
 end
 
 
@@ -411,7 +422,7 @@ function Server:update_projectiles(dt)
                         assert(pjt == col.item)
                         if col.other.type == "player" or col.other.type == "Kur" then
                             local player = col.other
-                            if player and pjt.puid ~= player.uuid  and not self.dead_players[player.uuid] then
+                            if player and pjt.puid ~= player.uuid and not self.dead_players[player.uuid] then
                                 local action = player:hit(col)
                                 if player:is_dead() then
                                     local x, y =self:rand_spawn_xy()
@@ -421,6 +432,11 @@ function Server:update_projectiles(dt)
                                     self.updates[player.uuid] = player:serialized()
                                     self.scores[pjt.puid] = self.scores[pjt.puid] + 1
                                     self.dead_players[player.uuid] = true
+                                    local owner = self.players[pjt.puid]
+                                    local msg_payload= {
+                                        msg = string.format("%s killed %s", owner:full_name(), player:full_name())
+                                    }
+                                    self:send_msg(msg_payload)
                                 end
                                 self.player_hits[player.uuid] = action
                             end
@@ -600,6 +616,12 @@ function Server:update_kur(dt)
         -- pick random vector to use?
         -- or should we just stand still?
     end
+end
+
+
+function Server:send_msg(data)
+    if not self.messages then self.messages = {} end
+    table.insert(self.messages, data)
 end
 
 

@@ -150,6 +150,9 @@ local function init(_Client, host, port)
             table.sort(scores, function(a, b) return a.score > b.score end)
             self.user:update_scores(scores, data.tick)
         end
+        for _i, msg_data in pairs(data.messages) do
+            log("GOT MESSAGE: %s", msg_data.msg)
+        end
     end)
 
     client:on("announce_players", function(data)
@@ -214,6 +217,12 @@ end
 
 function Client:create_projectile(m_info)
     self.client:send("create_projectile", m_info)
+end
+
+
+function Client:send_msg(msg)
+    local payload = {msg=msg, clid=self.client.clid}
+    self.client:send("send_msg", payload)
 end
 
 
