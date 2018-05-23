@@ -168,3 +168,7 @@ end
 function love.keypressed(...)
     if user then user:keypressed(...) end
 end
+
+function love.textinput(...)
+   if user then user:textinput(...) end
+end
