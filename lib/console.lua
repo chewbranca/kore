@@ -241,7 +241,7 @@ function console.draw()
   -- Draw background
   love.graphics.setColor(0, 0, 0, console.alpha)
   love.graphics.rectangle("fill", 0, 0, width, height)
-  love.graphics.setColor(1, 1, 1)
+  love.graphics.setColor(255, 255, 255)
 
   -- Leave some room for text entry
   local limit = height - (ROW_HEIGHT * 2)
