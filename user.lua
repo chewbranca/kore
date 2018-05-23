@@ -3,7 +3,7 @@ local console = require("lib.console")
 local User = {}
 User.__index = User
 
-local AUTO_PROJECTILE_DELAY = 0.20
+local AUTO_PROJECTILE_DELAY = 0.00
 
 function init(self, payload)
     local m0_x, m0_y = 0, 0
