@@ -228,20 +228,23 @@ end
 
 -- Rendering
 
-function console.draw()
+function console.draw(is_mini)
   local width, height = love.window.getMode()
   local font = console.font
   ROW_HEIGHT = font:getHeight()
   DISPLAY_WIDTH = width - PADDING
   DISPLAY_ROWS = math.floor((height - (ROW_HEIGHT * 2)) / ROW_HEIGHT)
+  if is_mini then DISPLAY_ROWS = 5 end
 
   local saved_font = love.graphics.getFont()
   love.graphics.setFont(font)
 
   -- Draw background
-  love.graphics.setColor(0, 0, 0, console.alpha)
-  love.graphics.rectangle("fill", 0, 0, width, height)
-  love.graphics.setColor(255, 255, 255)
+  if not is_mini then
+      love.graphics.setColor(0, 0, 0, console.alpha)
+      love.graphics.rectangle("fill", 0, 0, width, height)
+      love.graphics.setColor(255, 255, 255)
+  end
 
   -- Leave some room for text entry
   local limit = height - (ROW_HEIGHT * 2)
@@ -249,7 +252,9 @@ function console.draw()
   -- print edit line
   local prefix = "> "
   local ln = prefix .. editline
-  love.graphics.print(ln, console.padding_left, limit)
+  if not is_mini then
+      love.graphics.print(ln, console.padding_left, limit)
+  end
 
   -- draw cursor
   local cx, cy = console.padding_left + 1 + font:getWidth(prefix .. editline:sub(0, cursor)),

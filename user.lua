@@ -148,7 +148,7 @@ function User:draw()
         love.graphics.print(string.format("%8.8s | %i", score.name, score.score ), 10, 100 + count * 20)
         count = count + 1
     end
-    if console.toggled() then console.draw() end
+    console.draw(not console.toggled())
 end
 
 
