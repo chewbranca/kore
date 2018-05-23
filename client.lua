@@ -152,7 +152,6 @@ local function init(_Client, host, port)
             self.user:update_scores(scores, data.tick)
         end
         for _i, msg_data in pairs(data.messages) do
-            log("GOT MESSAGE: %s", msg_data.msg)
             self.user:print(msg_data.msg)
         end
     end)

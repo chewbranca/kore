@@ -214,8 +214,7 @@ function User:keypressed(key, scancode, isrepeat)
             console.keypressed(key, scancode, isrepeat)
         end
         return
-    end
-    if key == "return" then
+    elseif key == "return" then
         return console.on()
     end
 
