@@ -704,7 +704,7 @@ return {
     },
     {
       type = "objectgroup",
-      name = "spawn-point",
+      name = "spawn-points",
       visible = false,
       opacity = 1,
       offsetx = 0,
