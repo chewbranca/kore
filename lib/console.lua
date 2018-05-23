@@ -323,4 +323,51 @@ function console.draw()
   love.graphics.setFont(saved_font)
 end
 
+function console.eval(text)
+  -- Evaluate string
+  if text:sub(0,1) == '=' then
+    text = 'return ' .. text:sub(2)
+  end
+  local func, err = loadstring(text)
+  -- Compilation error
+  if not func then
+    if err then
+      -- Could be an expression instead of a statement -- try auto-adding return before it
+      local err2
+      func, err2 = loadstring("return " .. text)
+      if err2 then
+        console.print('! Compilation error: ' .. err)
+        return false
+      end
+    else
+      console.print('! Unknown compilation error')
+    end
+  end
+
+  -- Try evaluating
+  if func then
+    setfenv(func, setmetatable({print=console.print}, {__index=_G}))
+    local result = pack(pcall(func))
+    local ret = result[2]
+    if result[1] then
+      console.append(true, text)
+      local results, i = ppsl(result[2]), 3
+      if text:sub(0,1) == '=' then
+        history:append('return ' .. text:sub(2))
+      else
+        history:append(text)
+      end
+      while i <= #result do
+        results = results .. ', ' .. ppsl(result[i])
+        i = i + 1
+      end
+      console.print(results)
+      return true
+    else
+      console.print('! Evaluation error: ' .. ret)
+    end
+  end
+  return false
+end
+
 return console

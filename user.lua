@@ -39,7 +39,14 @@ function init(self, payload)
         auto_projectile_timer = 0.0
     }
     setmetatable(self, User)
-    console.initialize({on_input = function(txt) self.client:send_msg(txt) end})
+    local on_input = function(txt)
+        if love.keyboard.isDown("lshift") then
+            console.eval(txt)
+        else
+            self.client:send_msg(txt)
+        end
+    end
+    console.initialize({on_input = on_input})
 
     return self
 end
