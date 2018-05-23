@@ -30,7 +30,9 @@ local function init(_Server, args)
     -- load respawn points
     local respawn_points = {}
     for i, obj in pairs(map.layers["spawn-points"].objects) do
-        table.insert(respawn_points, {x=obj.x, y=obj.y})
+        local tl_x, tl_y = obj.x / 32, obj.y / 32
+        local x, y = map:convertTileToPixel(tl_x, tl_y)
+        table.insert(respawn_points, {x=x, y=y})
     end
 
     local world = args.world
