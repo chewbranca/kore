@@ -1,6 +1,7 @@
 
 local argparse = require("lib.argparse")
 local serpent = require("lib.serpent")
+local repl = require("lib.repl")
 
 lume = require("lib.lume")
 
@@ -26,6 +27,9 @@ local GameUser = require("user")
 local client, layer, map, player, server, world
 
 local is_user_bootstrapped = false
+
+-- HACK: set global Kore table for use from repl
+GKORE = {}
 
 
 local function parse_args()
@@ -75,12 +79,14 @@ function love.load(args)
     end
 
     if pargs.server then
+        repl.start()
         server = GameServer({
             port = pargs.port,
             map = map,
             world = world,
             kur = not pargs.no_kur,
         })
+        GKORE.server = server
     end
     if pargs.client then
         client = GameClient(pargs.host, pargs.port)
@@ -92,6 +98,8 @@ function love.load(args)
             }
             user = GameUser(payload)
         end
+        GKORE.client = client
+        GKORE.user = user
     end
 end
 
