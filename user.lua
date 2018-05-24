@@ -61,7 +61,7 @@ function User:update(dt)
     local m0_x, m0_y = self.m_x, self.m_y
     local m_x, m_y = love.mouse.getPosition()
 
-    if dir and dir ~= self.cdir then
+    if dir then
         updates.cdir = lfg.ndirs[dir]
         -- TODO: guarantee self.player is set
         updates.state = self.player.STATES.run
