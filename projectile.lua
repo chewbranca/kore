@@ -6,7 +6,7 @@ local Projectile = {}
 Projectile.__index = Projectile
 
 
-local function init(self, p)
+local function init(_self, p)
     assert(p.spell_name)
     assert(p.cdir)
     assert(p.x)

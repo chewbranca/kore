@@ -1,13 +1,10 @@
 local lume = require("lib.lume")
 local sock = require("lib.sock")
-local console = require("lib.console")
 
 local lfg = require("lfg")
 
 local GamePlayer = require("player")
 local Projectile = require("projectile")
-
-local debug = true
 
 local Client = {}
 Client.__index = Client
@@ -84,7 +81,7 @@ local function init(_Client, host, port)
             end
         end
         local layer = lfg.map.layers["KoreProjectiles"]
-        for uuid, spjt in pairs(data.expired) do
+        for uuid, _spjt in pairs(data.expired) do
             self.projectiles[uuid] = nil
             layer.projectiles[uuid] = nil
         end
@@ -125,7 +122,7 @@ local function init(_Client, host, port)
                 player:get_hit(hit)
             end
         end
-        for puid, tval in pairs(data.disconnects) do
+        for puid, _tval in pairs(data.disconnects) do
             if self.players[puid] then
                 local layer = lfg.map.layers["KorePlayers"]
                 -- TODO: switch player layer.players to use puid as key
@@ -180,7 +177,7 @@ setmetatable(Client, {__call = init})
 
 
 function Client:update(dt)
-    self.client:update()
+    self.client:update(dt)
 end
 
 
@@ -201,7 +198,7 @@ function Client:create_player(user, payload)
 end
 
 
-function Client:send_player_update(user, updates)
+function Client:send_player_update(_user, updates)
     self.client:send("player_update", updates)
 end
 

@@ -23,7 +23,7 @@ Player.__index = Player
 Player.STATES = STATES
 
 
-local function init(self, args)
+local function init(_self, args)
     assert(args.character)
     assert(args.x)
     assert(args.y)
@@ -131,7 +131,7 @@ function Player:get_hit(action)
 end
 
 
-function Player:update_player(p, tick)
+function Player:update_player(p, _tick)
     if p.x  then self.x  = p.x end
     if p.y  then self.y  = p.y end
     if p.vx then self.vx = p.vx end

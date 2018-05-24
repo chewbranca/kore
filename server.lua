@@ -1,4 +1,3 @@
-local bump = require("lib.bump")
 local lume = require("lib.lume")
 local sock = require("lib.sock")
 
@@ -29,7 +28,8 @@ local function init(_Server, args)
 
     -- load respawn points
     local respawn_points = {}
-    for i, obj in pairs(map.layers["spawn-points"].objects) do
+
+    for _, obj in pairs(map.layers["spawn-points"].objects) do
         local tl_x, tl_y = obj.x / 32, obj.y / 32
         local x, y = map:convertTileToPixel(tl_x, tl_y)
         table.insert(respawn_points, {x=x, y=y})
@@ -113,7 +113,7 @@ local function init(_Server, args)
         -- TODO: add update ack or track frame id and send frame ack
     end)
 
-    server:on("create_projectile", function(data, client)
+    server:on("create_projectile", function(data, _client)
         --log("CREATING NEW PROJECTILE WITH: %s", ppsl(data))
         local pjt = Projectile(data)
         self.projectiles[pjt.uuid] = pjt
@@ -121,7 +121,7 @@ local function init(_Server, args)
         self:broadcast_event("created_projectile", pjt:serialized())
     end)
 
-    server:on("disconnect", function(data, client)
+    server:on("disconnect", function(_data, client)
         log("SERVER GOT DISCONNECT FROM CLIENT: %s", client.clid)
         if self.players[client.clid] then
             local player = assert(self.players[client.clid])
@@ -131,7 +131,7 @@ local function init(_Server, args)
         end
     end)
 
-    server:on("player_respawn_request", function(data, client)
+    server:on("player_respawn_request", function(_data, client)
         if self.players[client.clid] then
             local player = assert(self.players[client.clid])
             local x, y = self:rand_spawn_xy()
@@ -180,10 +180,10 @@ function Server:broadcast_event(etype, data)
 end
 
 
-function Server:announce_player(aclient, data)
+function Server:announce_player(_client, data)
     local atype = "announce_player"
     data["atype"] = atype
-    for uuid, client in pairs(self.clients) do
+    for _uuid, client in pairs(self.clients) do
         client:send(atype, data)
     end
 end
@@ -201,7 +201,7 @@ function Server:announce_players()
 end
 
 
-function Server:broadcast_projectiles(dt)
+function Server:broadcast_projectiles(_dt)
     local serialized = {projectiles={}, expired={}}
     local updated = false
     if next(self.projectiles) ~= nil then
@@ -224,7 +224,7 @@ end
 
 
 -- TODO: switch to prioritize update hierarchy
-function Server:broadcast_updates(dt)
+function Server:broadcast_updates(_dt)
     local payload = {
         tick = self.ticks,
         updates = self.updates,
@@ -261,7 +261,7 @@ function Server:tick(dt)
 end
 
 
-function Server:clear_updates(dt)
+function Server:clear_updates(_dt)
     self.updates = {}
     self.player_hits = {}
     self.disconnected_players = {}
@@ -269,8 +269,8 @@ function Server:clear_updates(dt)
 end
 
 
-function Server:clear_projectiles(dt)
-    for uuid, pjt in pairs(self.expired) do
+function Server:clear_projectiles(_dt)
+    for uuid, _pjt in pairs(self.expired) do
         self.projectiles[uuid] = nil
     end
     self.expired = {}
@@ -379,7 +379,7 @@ function Server:process_updates(dt)
                 self.world:update(player, x, y)
                 player.x, player.y = x, y
             else
-                local actual_x, actual_y, cols, len = self.world:move(
+                local actual_x, actual_y, _cols, _len = self.world:move(
                     player, x, y, skip_collisions)
                 -- TODO: switch these updates to action model like with pjt's
                 -- then update by way of player:update_player(action)
@@ -390,7 +390,7 @@ function Server:process_updates(dt)
     end
 
     local alive = {}
-    for puid, val in pairs(self.dead_players) do
+    for puid, _val in pairs(self.dead_players) do
         local player = assert(self.players[puid])
         player:update(dt)
         if not player:is_dead() then
@@ -402,7 +402,7 @@ function Server:process_updates(dt)
         end
     end
 
-    for puid, val in pairs(alive) do self.dead_players[puid] = nil end
+    for puid, _val in pairs(alive) do self.dead_players[puid] = nil end
 end
 
 
@@ -422,7 +422,7 @@ function Server:update_projectiles(dt)
 
                 if len > 0 then
                     self.expired[uuid] = pjt
-                    for i, col in ipairs(cols) do
+                    for _, col in ipairs(cols) do
                         assert(pjt == col.item)
                         if col.other.type == "player" or col.other.type == "Kur" then
                             local player = col.other
@@ -518,7 +518,7 @@ function Server:update_kur(dt)
         -- find new target
         local player_vectors = {}
         local k_x, k_y = kur.x, kur.y
-        for puid, player in pairs(self.players) do
+        for _puid, player in pairs(self.players) do
             if player.uuid ~= kur.uuid then
                 local p_x, p_y = player.x, player.y
                 local angle = lume.angle(k_x, k_y, p_x, p_y)
@@ -542,7 +542,6 @@ function Server:update_kur(dt)
         end
         if next(player_vectors) ~= nil then
             table.sort(player_vectors, function(a, b) return a.distance < b.distance end)
-            local p_t = player_vectors[1]
             --log("KUR FOUND NEW TARGET[%s]: %s", kur.uuid, player_vectors[1].player.uuid)
             self.kur_target = player_vectors[1]
         else
@@ -616,7 +615,7 @@ function Server:update_kur(dt)
             self.world:add(pjt3, pjt3.x, pjt3.y, pjt3.w, pjt3.h)
             self:broadcast_event("created_projectile", pjt3:serialized())
         end
-    else
+    -- else
         -- pick random vector to use?
         -- or should we just stand still?
     end

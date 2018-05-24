@@ -1,7 +1,6 @@
 local anim8 = require "lib.anim8"
 local bump = require "lib.bump"
 local ini = require "lib.inifile"
-local lume = require "lib.lume"
 local serpent = require "lib.serpent"
 local sti = require "lib.sti"
 
@@ -193,9 +192,9 @@ function lfg.process(conf)
 end
 
 
-function lfg.process_animation(v)
+function lfg.process_animation(val)
     local a = {}
-    for k, v in pairs(v) do
+    for k, v in pairs(val) do
         if k == "duration" and string.match(v, "^(%d+)ms$") then
             local ms = tonumber(string.match(v, "^(%d+)ms$"))
             a.duration = ms / 1000
@@ -217,7 +216,7 @@ function lfg.process_animation(v)
     return a
 end
 
-        
+
 function lfg.Character(c)
     assert(c.name, "Character name is present")
     assert(c.sprite, "Character sprite is present")
@@ -305,10 +304,10 @@ function lfg.Spell(s)
             local frames = string.format("%s-%s", begin, fin)
 
             --local onLoop = am.type
-            local am = assert(anim8.newAnimation(
+            local am2 = assert(anim8.newAnimation(
                 spell.grid(frames, row), fdur))
-            spell.ams[dir][name] = am
-            spell.ams[ndir][name] = am
+            spell.ams[dir][name] = am2
+            spell.ams[ndir][name] = am2
         end
     end
 
@@ -434,7 +433,7 @@ function lfg.update(dt)
 end
 
 
-function lfg.draw(dt)
+function lfg.draw(_dt)
     local px = lfg.player and lfg.player.x or 0
     local py = lfg.player and lfg.player.y or 0
     local tx = math.max(0, math.floor(px - love.graphics.getWidth() / 2))
@@ -465,9 +464,7 @@ end
 
 
 function lfg.get_key_dir()
-    local is_kd = love.keyboard.isDown
     local cdir = {x=0, y=0}
-    local ret = nil
 
     for key, dir in pairs(KEY_DIRS) do
         if love.keyboard.isDown(key) then

@@ -9,6 +9,6 @@ max_line_length = false
 -- the latest love2d API
 new_globals = {"love"}
 
-stds.main = {globals ={"lume", "pp", "ppsl", "ppl", "log", "lfg"}}
+stds.main = {globals ={"lume", "pp", "ppsl", "ppl", "log", "lfg", "GKORE"}}
 
 -- run with luacheck --std luajit+love+main *lua
