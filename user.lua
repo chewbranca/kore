@@ -5,7 +5,7 @@ User.__index = User
 
 local AUTO_PROJECTILE_DELAY = 0.00
 
-function init(self, payload)
+local function init(_self, payload)
     local m0_x, m0_y = 0, 0
     local m_x, m_y = love.mouse.getPosition()
     local angle = lume.angle(m0_x, m0_y, m_x, m_y)
@@ -62,7 +62,6 @@ function User:update(dt)
     local m_x, m_y = love.mouse.getPosition()
 
     if dir and dir ~= self.cdir then
-        self.cdir = cdir
         updates.cdir = lfg.ndirs[dir]
         -- TODO: guarantee self.player is set
         updates.state = self.player.STATES.run
@@ -98,8 +97,8 @@ function User:update(dt)
         self.auto_projectile_timer = 0.0
         if not (self.mouse_updates["1"] or self.mouse_updates["2"]) then
             if not self.mouse_updates then self.mouse_updates = {} end
-            local m_x, m_y = love.mouse.getPosition()
-            self.mouse_updates["1"] = self:trigger_mouseaction(m_x, m_y, button)
+            local mx, my = love.mouse.getPosition()
+            self.mouse_updates["1"] = self:trigger_mouseaction(mx, my, nil)
         end
     end
 
@@ -181,7 +180,7 @@ function User:mousepressed(m_x, m_y, button)
 end
 
 
-function User:trigger_mouseaction(m_x, m_y, button)
+function User:trigger_mouseaction(m_x, m_y, _button)
     if(not self.player) then return end
 
     local w_x = math.floor(love.graphics.getWidth() / 2)
@@ -235,10 +234,10 @@ function User:keypressed(key, scancode, isrepeat)
         --love.window.setFullscreen(self.fullscreen, "desktop")
         if self.fullscreen then
             love.window.setMode(self.d_width, self.d_height, fst)
-            lfg.map:resize(d_width, d_height)
+            lfg.map:resize(self.d_width, self.d_height)
         else
             love.window.setMode(self.w_width, self.w_height, fst)
-            lfg.map:resize(w_width, w_height)
+            lfg.map:resize(self.w_width, self.w_height)
         end
     end
 
@@ -247,15 +246,15 @@ function User:keypressed(key, scancode, isrepeat)
     end
 end
 
-function User:textinput(...)
+function User.textinput(_self, ...)
     if console.toggled() then console.textinput(...) end
 end
 
-function User:update_scores(scores, tick)
+function User:update_scores(scores, _tick)
     self.scores = scores
 end
 
-function User:print(...)
+function User.print(_self, ...)
     console.print(...)
 end
 

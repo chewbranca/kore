@@ -1,6 +1,5 @@
 
 local argparse = require("lib.argparse")
-local serpent = require("lib.serpent")
 local repl = require("lib.repl")
 
 lume = require("lib.lume")
@@ -24,7 +23,7 @@ local GameClient = require("client")
 local GameServer = require("server")
 local GameUser = require("user")
 
-local client, layer, map, player, server, world
+local client, map, server, world
 
 local is_user_bootstrapped = false
 
@@ -49,8 +48,9 @@ local function parse_args()
     return parser:parse()
 end
 
+local user
 
-function love.load(args)
+function love.load()
     log("LOADING KORE")
 
     local pargs = parse_args()
@@ -72,10 +72,10 @@ function love.load(args)
     local pjt_layer = lfg.map:addCustomLayer("KoreProjectiles", #lfg.map.layers + 1)
     pjt_layer.projectiles = {}
     pjt_layer.update = function(self, dt)
-        for i, pjt in ipairs(self.projectiles) do pjt:update(dt) end
+        for _i, pjt in ipairs(self.projectiles) do pjt:update(dt) end
     end
     pjt_layer.draw = function(self)
-        for uuid, pjt in pairs(self.projectiles) do pjt:draw() end
+        for _uuid, pjt in pairs(self.projectiles) do pjt:draw() end
     end
 
     if pargs.server then
