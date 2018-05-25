@@ -90,20 +90,28 @@ local function init(_Server, args)
 
     server:on("create_player", function(data, client)
         log("GOT CREATE PLAYER: %s", ppsl(data))
+        local spell_name = data.payload.spell_name or lfg.rand_spell_name()
+        local char_name = data.payload.character or lfg.rand_char_name()
         local x, y = self:rand_spawn_xy()
-        local player = GamePlayer({
-            name = data.payload.name,
-            character = data.payload.character,
-            spell_name = data.payload.spell_name,
-            user_id = data.user_id,
-            x = x,
-            y = y,
-        })
-        log("CREATING PLAYER: %s", ppsl(player:serialized()))
-        self:store_player(player, client.clid)
-        client:send("create_player_ack", {req_id=data.req_id,
-            player=player:serialized()})
-        self:announce_players()
+
+        if not lfg.get_spell(spell_name) then
+            client:send("create_player_nack", {error="Invalid spell"})
+        elseif not lfg.get_character(char_name) then
+            client:send("create_player_nack", {error="Invalid character"})
+        else
+            local player = GamePlayer({
+                name = data.payload.name,
+                character = char_name,
+                spell_name = spell_name,
+                user_id = data.user_id,
+                x = x,
+                y = y,
+            })
+            self:store_player(player, client.clid)
+            client:send("create_player_ack", {req_id=data.req_id,
+                player=player:serialized()})
+            self:announce_players()
+        end
     end)
 
     server:on("player_update", function(data, client)
