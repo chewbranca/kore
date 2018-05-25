@@ -33,15 +33,16 @@ love . --server
 ## Now run a client (or many clients) to connect to the local server
 
 ```
-love .  --client --user --character "Zombie" --spell "Lightning"
+# Connect with random character and spell
+love .  --host "localhost" --name "FOO 1"
 ```
 
 ```
-love .  --client --user --character "Minotaur" --spell "Fireball"
+love .  --host "localhost" --character "Minotaur" --spell "Fireball" --name "FOO 2"
 ```
 
 ```
-love .  --client --user --character "Skeleton" --spell "Channel"
+love .  --host "localhost" --character "Skeleton" --spell "Channel" --name "FOO 3"
 ```
 
 ## Connect to a Remote Server
@@ -51,7 +52,7 @@ appropriate host, and you'll probably also want to specify a name too with the
 `--name` parameter.
 
 ```
-love .  --client --user --name "FOO" --host 1.2.3.4 --character "Zombie" --spell "Lightning"
+love .  --name "FOO" --host 1.2.3.4
 ```
 
 # Running Kore on OSX
@@ -61,7 +62,7 @@ command line. If you installed Love2D using the binaries linked above, you need
 to invoke the commands through the app package. Basically you just need to do:
 
 ```
-/Applications/love.app/Contents/MacOS/love .  --client --user --name "FOO" --host 1.2.3.4 --character "Zombie" --spell "Lightning"
+/Applications/love.app/Contents/MacOS/love .  --name "FOO" --host 1.2.3.4
 ```
 
 # Running Kore on Linux

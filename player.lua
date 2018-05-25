@@ -11,7 +11,6 @@ local STATES = {
 
 local DEFAULT_DIR         = "D_S"
 local DEFAULT_SPEED       = 400
-local DEFAULT_SPELL_NAME  = "Fireball"
 local DEFAULT_STATE       = STATES.stand
 
 local RESPAWN_TIMER       = 7.0
@@ -24,12 +23,12 @@ Player.STATES = STATES
 
 
 local function init(_self, args)
-    assert(args.character)
     assert(args.x)
     assert(args.y)
 
-    local char = lfg.get_character(args.character)
-    local spell_name = args.spell_name or DEFAULT_SPELL_NAME
+    local char_name = args.character or lfg.rand_char_name()
+    local char = lfg.get_character(char_name)
+    local spell_name = args.spell_name or lfg.rand_spell_name()
     local spell = lfg.get_spell(spell_name)
     local uuid = args.uuid or lume.uuid()
     local name = args.name or string.format("FOO: %s", uuid)

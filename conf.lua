@@ -18,10 +18,12 @@ function love.conf(t)
    t.window.width = 1400
    t.window.height = 800
    t.console = true
-   local client = false
+   local client = true
+   local server = false
    for _, a in ipairs(arg) do
       if(a == "--headless") then headless(t) end
-      if(a == "--client") then client = true end
+      if(a == "--no_client") then client = false end
+      if(a == "--server") then server = true end
    end
-   if(not client) then headless(t) end
+   if(server and not client) then headless(t) end
 end

@@ -35,13 +35,13 @@ local function parse_args()
     local parser = argparse("kore", "Kore - The Rise of Persephone")
     parser:argument("dir", "App dir")
     parser:flag("--server", "Host a server")
-    parser:flag("--client", "Connect to host")
-    parser:flag("--user", "Are you a user?")
-    parser:flag("--no_kur", "Scared of Kur?")
-    parser:option("--host", "Server host to connect to", "localhost")
+    parser:flag("--no-client", "Do not connect to host?")
+    parser:flag("--no-user", "Are you not a user?")
+    parser:flag("--no-kur", "Scared of Kur?")
+    parser:option("--host", "Server host to connect to", nil)
     parser:option("--port", "Server port to connect to", GameServer.PORT)
-    parser:option("--character", "What character to use; one of [Minotaur, Zombie, Skeleton", "Minotaur")
-    parser:option("--spell", "What spell to use; one of [Fireball, Lightning, Channel", "Fireball")
+    parser:option("--character", "What character to use; one of [Minotaur, Zombie, Skeleton, Goblin, Antlion", nil)
+    parser:option("--spell", "What spell to use; one of [Fireball, Lightning, Channel, Icicle", nil)
     parser:option("--name", "Are you really a user?", string.format("FOO{%s}", lume.uuid()))
     parser:option("--map", "Map file to use", "map_arena.lua")
 
@@ -55,6 +55,8 @@ function love.load()
 
     local pargs = parse_args()
     log("GOT PARSED ARGS: %s", ppsl(pargs))
+    local host = (pargs.host or (pargs.server and "localhost") or
+            "kore.chewbranca.com")
 
     assert(lfg.init({map_file=pargs.map}, pargs))
     map = lfg.map
@@ -88,9 +90,9 @@ function love.load()
         })
         GKORE.server = server
     end
-    if pargs.client then
-        client = GameClient(pargs.host, pargs.port)
-        if pargs.user then
+    if not pargs.no_client then
+        client = GameClient(host, pargs.port)
+        if not pargs.no_user then
             local payload = {
                 character = pargs.character,
                 spell_name = pargs.spell,

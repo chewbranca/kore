@@ -35,7 +35,7 @@ Skeleton{
 }
 
 Skeleton{
-    name = "Skeleton (weak)",
+    name = "Skeleton Weak",
     sprite = "skeleton/skeleton_weak.png"
 }
 
@@ -52,9 +52,45 @@ Character{
 }
 
 Character{
+    name = "Wyvern",
+    sprite = "wyvern/wyvern.png",
+    animation = "characters/wyvern.txt"
+}
+
+Character{
     name = "Wyvern Adult",
     sprite = "wyvern/wyvern_adult.png",
     animation = "characters/wyvern_adult.txt"
+}
+
+Character{
+    name = "Goblin",
+    sprite = "goblin/goblin.png",
+    animation = "characters/goblin.txt"
+}
+
+Character{
+    name = "Goblin Elite",
+    sprite = "goblin/goblin_elite.png",
+    animation = "characters/goblin.txt"
+}
+
+Character{
+    name = "Antlion",
+    sprite = "antlion/antlion.png",
+    animation = "characters/antlion.txt"
+}
+
+Character{
+    name = "Antlion Fire",
+    sprite = "antlion/fire_ant.png",
+    animation = "characters/antlion.txt"
+}
+
+Character{
+    name = "Antlion Ice",
+    sprite = "antlion/ice_ant.png",
+    animation = "characters/antlion.txt"
 }
 
 Spell{
@@ -73,4 +109,10 @@ Spell{
     name = "Channel",
     sprite = "art_src/spells/channel.png",
     animation = "art_src/animation_defs/powers/channel.txt"
+}
+
+Spell{
+    name = "Icicle",
+    sprite = "art_src/spells/icicle.png",
+    animation = "art_src/animation_defs/powers/icicle.txt"
 }

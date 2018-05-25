@@ -48,7 +48,9 @@ end
 
 -- Flare Game base objects
 local characters_ = {}
+local character_names_ = {}
 local spells_ = {}
+local spell_names_ = {}
 
 -- This ordering on rows is based on the sprite sheets
 local D_W  = {x=-1, y=0}  -- row 1
@@ -264,12 +266,27 @@ function lfg.Character(c)
     end
 
     characters_[char.name] = char
+    table.insert(character_names_, char.name)
     return char
 end
 
 
 function lfg.get_character(c) return characters_[c] end
 function lfg.get_spell(s) return spells_[s] end
+
+
+function lfg.rand_char_name()
+    return character_names_[math.random(#character_names_)]
+end
+
+
+function lfg.rand_spell_name()
+    return spell_names_[math.random(#spell_names_)]
+end
+
+
+function lfg.rand_char() return characters_[lfg.rand_char_name()] end
+function lfg.rand_spell() return spells_[lfg.rand_spell_name()] end
 
 
 function lfg.Spell(s)
@@ -312,6 +329,7 @@ function lfg.Spell(s)
     end
 
     spells_[spell.name] = spell
+    table.insert(spell_names_, spell.name)
     return spell
 end
 

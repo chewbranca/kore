@@ -494,7 +494,7 @@ function Server:make_kur()
         name = "Kur",
         starting_hp = 1000,
         character = "Wyvern Adult",
-        spell = "Fireball",
+        spell_name = "Fireball",
         user_id = "ENEMY",
         speed = 70,
         w = 256,
