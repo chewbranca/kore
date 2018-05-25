@@ -87,6 +87,10 @@ local function init(_Client, host, port)
         end
     end)
 
+    client:on("create_player_nack", function(data)
+        error(data.error)
+    end)
+
     client:on("create_player_ack", function(data)
         log("GOT CREATE_PLAYER_ACK: %s -- %s", ppsl(data), ppsl(data.player))
         local req = reqs[data.req_id]

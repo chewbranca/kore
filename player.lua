@@ -27,9 +27,9 @@ local function init(_self, args)
     assert(args.y)
 
     local char_name = args.character or lfg.rand_char_name()
-    local char = lfg.get_character(char_name)
+    local char = assert(lfg.get_character(char_name))
     local spell_name = args.spell_name or lfg.rand_spell_name()
-    local spell = lfg.get_spell(spell_name)
+    local spell = assert(lfg.get_spell(spell_name))
     local uuid = args.uuid or lume.uuid()
     local name = args.name or string.format("FOO: %s", uuid)
     local cdir = args.cdir or DEFAULT_DIR
