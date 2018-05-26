@@ -441,6 +441,7 @@ function Server:update_projectiles(dt)
                     for _, col in ipairs(cols) do
                         assert(pjt == col.item)
                         if col.other.type == "player" or col.other.type == "Kur" then
+                            pjt.collision = "player"
                             local player = col.other
                             if player and pjt.puid ~= player.uuid and not self.dead_players[player.uuid] then
                                 local action = player:hit(col)
@@ -460,6 +461,8 @@ function Server:update_projectiles(dt)
                                 end
                                 self.player_hits[player.uuid] = action
                             end
+                        elseif col.other.type == "projectile" then
+                            pjt.collision = "projectile"
                         end
                     end
                 end

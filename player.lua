@@ -30,6 +30,8 @@ local function init(_self, args)
     local char = assert(lfg.get_character(char_name))
     local spell_name = args.spell_name or lfg.rand_spell_name()
     local spell = assert(lfg.get_spell(spell_name))
+    local pjt_impact = assert(lfg.get_effect("Quake"))
+    local pjt_impact_type = "fire"
     local uuid = args.uuid or lume.uuid()
     local name = args.name or string.format("FOO: %s", uuid)
     local cdir = args.cdir or DEFAULT_DIR
@@ -66,6 +68,10 @@ local function init(_self, args)
         respawn_timer = 0.0,
         respawn_loc = nil,
         type = "player",
+        pjt_impact = pjt_impact,
+        pjt_impact_type = pjt_impact_type,
+        pjt_impact_am = assert(pjt_impact.ams[pjt_impact_type]["power"]),
+        pjt_impact_timer = 0.0,
     }
     setmetatable(self, Player)
     self.last_x, self.last_y = self.x, self.y
@@ -127,6 +133,7 @@ function Player:get_hit(action)
     if self:is_dead() and action.respawn_loc then
         self.respawn_loc = action.respawn_loc
     end
+    self.pjt_impact_timer = 0.4
 end
 
 
@@ -189,6 +196,11 @@ function Player:update(dt)
 
         self.am:update(dt)
     end
+
+    if self.pjt_impact_timer > 0.0 then
+        self.pjt_impact_timer = self.pjt_impact_timer - dt
+        self.pjt_impact_am:update(dt)
+    end
 end
 
 
@@ -203,6 +215,12 @@ function Player:draw()
     end
     love.graphics.pop()
     love.graphics.setColor(255, 255, 255)
+    if self.pjt_impact_timer > 0.0 then
+        local pi = self.pjt_impact
+        local pi_am = self.pjt_impact_am
+        -- TODO: fix offsets
+        pi_am:draw(pi.sprite, self.x, self.y, 0, self.sx, self.sy, self.ox, self.oy)
+    end
     self.am:draw(self.char.sprite, self.x, self.y, 0, self.sx, self.sy, self.ox, self.oy)
 end
 

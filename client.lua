@@ -17,12 +17,21 @@ local function init(_Client, host, port)
     local client = sock.newClient(host, port)
     local players = {}
     local projectiles = {}
+    local projectile_ams = {}
     local reqs = {}
+
+    local pjt_col = assert(lfg.get_effect("Blast"))
+    local pjt_col_type = "fire"
+    local pjt_col_am = assert(pjt_col.ams[pjt_col_type]["power"])
 
     local self = setmetatable({
             client = client,
             players = players,
             projectiles = projectiles,
+            projectile_ams = projectile_ams,
+            pjt_col = pjt_col,
+            pjt_col_type = pjt_col_type,
+            pjt_col_am = pjt_col_am,
             reqs = reqs,
             last_tick = 0,
             curr_updates = {},
@@ -115,6 +124,19 @@ local function init(_Client, host, port)
         end
         local layer = lfg.map.layers["KoreProjectiles"]
         for uuid, _spjt in pairs(data.pjt_data.expired) do
+            local pjt = self.projectiles[uuid]
+            if pjt.collision == "projectile" then
+                -- TODO: use animation's duration
+                local am_uuid = lume.uuid()
+                local payload = {
+                    am = self.pjt_col_am:clone(),
+                    am_uuid = am_uuid,
+                    duration = 0.6,
+                    x = pjt.x,
+                    y = pjt.y,
+                }
+                self.projectile_ams[am_uuid] = payload
+            end
             self.projectiles[uuid] = nil
             layer.projectiles[uuid] = nil
         end
@@ -181,6 +203,26 @@ setmetatable(Client, {__call = init})
 
 function Client:update(dt)
     self.client:update(dt)
+    local to_remove = {}
+    for uuid, pjt_am in pairs(self.projectile_ams) do
+        pjt_am.duration = pjt_am.duration - dt
+        if pjt_am.duration < 0.0 then
+            table.insert(to_remove, uuid)
+        end
+        pjt_am.am:update(dt)
+    end
+    for _i, uuid in ipairs(to_remove) do
+        self.projectile_ams[uuid] = nil
+    end
+end
+
+
+-- TODO: client draw hack for projectile collision effects
+-- need a better place for the temporary animation objects to be stored
+function Client:draw()
+    for uuid, pjt_am in pairs(self.projectile_ams) do
+        pjt_am.am:draw(self.pjt_col.sprite, pjt_am.x, pjt_am.y, 0, 0.5, 0.5, 0, 0)
+    end
 end
 
 

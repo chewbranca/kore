@@ -154,11 +154,15 @@ function love.draw()
                 love.graphics.points(math.floor(px), math.floor(py))
                 love.graphics.rectangle("line", user:x() - user:ox(), user:y() - user:oy(), 128, 128)
             end
+            client:draw()
         end
         love.graphics.pop()
 
         love.graphics.setColor(255, 255, 255)
         user:draw()
+
+        -- TODO: remove need for client:draw hackery
+        --client:draw()
     end
 end
 

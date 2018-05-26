@@ -39,6 +39,7 @@ local function init(_self, p)
         uuid = uuid,
         speed = speed,
         type = "projectile",
+        collision = nil,
     }
     setmetatable(self, Projectile)
 
@@ -75,6 +76,7 @@ function Projectile:serialized()
         max_age = self.max_age,
         puid = self.puid,
         uuid = self.uuid,
+        collision = self.collision,
     }
 end
 
@@ -95,6 +97,7 @@ end
 function Projectile:update_projectile(p)
     self.x = p.x
     self.y = p.y
+    if p.collision then self.collision = p.collision end
 end
 
 

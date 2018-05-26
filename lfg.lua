@@ -51,6 +51,8 @@ local characters_ = {}
 local character_names_ = {}
 local spells_ = {}
 local spell_names_ = {}
+local effects_ = {}
+local effect_names_ = {}
 
 -- This ordering on rows is based on the sprite sheets
 local D_W  = {x=-1, y=0}  -- row 1
@@ -266,13 +268,14 @@ function lfg.Character(c)
     end
 
     characters_[char.name] = char
-    table.insert(character_names_, char.name)
+    if not c.non_player then table.insert(character_names_, char.name) end
     return char
 end
 
 
 function lfg.get_character(c) return characters_[c] end
 function lfg.get_spell(s) return spells_[s] end
+function lfg.get_effect(s) return effects_[s] end
 
 
 function lfg.rand_char_name()
@@ -334,6 +337,50 @@ function lfg.Spell(s)
 end
 
 
+function lfg.Effect(s)
+    assert(s.name, "Effect name is present")
+    assert(s.sprite, "Effect sprite is present")
+    assert(s.animation, "Effect animation is present")
+    assert(s.row_types, "Effect row types is present")
+
+    local effect = {
+        ams = {},   -- animations
+        as = nil,   -- animation_set
+        grid = nil,
+        sprite = nil,
+        name = s.name,
+        row_types = s.row_types,
+    }
+
+    local sprite_path = s.sprite:match("^/") and s.sprite or (lfg.conf.flare_dir .. s.sprite)
+    effect.sprite = assert(love.graphics.newImage(sprite_path))
+
+    local anim_path = lfg.conf.flare_dir .. s.animation
+    effect.as = assert(lfg.load_and_process(anim_path))
+
+    effect.grid = anim8.newGrid(effect.as.w, effect.as.h, effect.sprite:getWidth(), effect.sprite:getHeight())
+
+    for row, etype in ipairs(effect.row_types) do
+        effect.ams[etype] = {}
+        for name, am in pairs(effect.as.animations) do
+            local begin = am.position + 1
+            local fin   = am.position + am.frames
+            local fdur = am.duration / am.frames
+            local frames = string.format("%s-%s", begin, fin)
+
+            --local onLoop = am.type
+            local am2 = assert(anim8.newAnimation(
+                effect.grid(frames, row), fdur))
+            effect.ams[etype][name] = am2
+        end
+    end
+
+    effects_[effect.name] = effect
+    table.insert(effect_names_, effect.name)
+    return effect
+end
+
+
 -- thanks to: https://gamedev.stackexchange.com/questions/49290/whats-the-best-way-of-transforming-a-2d-vector-into-the-closest-8-way-compass-d
 function lfg.angle_to_dir(angle)
     local n = #RDIRS
@@ -358,9 +405,11 @@ function lfg.init(conf, args)
     -- TODO: switch to proper env
     _G.Character = lfg.Character
     _G.Spell = lfg.Spell
+    _G.Effect = lfg.Effect
     love.filesystem.load(lfg.conf.world_file)()
     _G.Character = nil
     _G.Spell = nil
+    _G.Effect = nil
 
     lfg.map = assert(sti(lfg.conf.map_file))
 

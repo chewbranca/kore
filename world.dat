@@ -60,7 +60,8 @@ Character{
 Character{
     name = "Wyvern Adult",
     sprite = "wyvern/wyvern_adult.png",
-    animation = "characters/wyvern_adult.txt"
+    animation = "characters/wyvern_adult.txt",
+    non_player = true
 }
 
 Character{
@@ -116,3 +117,18 @@ Spell{
     sprite = "art_src/spells/icicle.png",
     animation = "art_src/animation_defs/powers/icicle.txt"
 }
+
+Effect{
+    name = "Quake",
+    sprite = "art_src/spells/quake.png",
+    animation = "art_src/animation_defs/powers/quake.txt",
+    row_types = {"smoke", "fire", "ice"},
+}
+
+Effect{
+    name = "Blast",
+    sprite = "art_src/spells/blast.png",
+    animation = "art_src/animation_defs/powers/blast.txt",
+    row_types = {"fire", "ice"},
+}
+
