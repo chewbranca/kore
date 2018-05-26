@@ -122,11 +122,9 @@ local function init(_Server, args)
     end)
 
     server:on("create_projectile", function(data, _client)
-        --log("CREATING NEW PROJECTILE WITH: %s", ppsl(data))
         local pjt = Projectile(data)
         self.projectiles[pjt.uuid] = pjt
         self.world:add(pjt, pjt.x, pjt.y, pjt.w, pjt.h)
-        self:broadcast_event("created_projectile", pjt:serialized())
     end)
 
     server:on("disconnect", function(_data, client)
@@ -209,7 +207,7 @@ function Server:announce_players()
 end
 
 
-function Server:broadcast_projectiles(_dt)
+function Server:serialize_projectiles(_dt)
     local serialized = {projectiles={}, expired={}}
     local updated = false
     if next(self.projectiles) ~= nil then
@@ -226,7 +224,7 @@ function Server:broadcast_projectiles(_dt)
         end
     end
     if updated then
-        self.server:sendToAll("updated_projectiles", serialized)
+        self.serialized_projectiles = serialized
     end
 end
 
@@ -240,6 +238,7 @@ function Server:broadcast_updates(_dt)
         disconnects = self.disconnected_players,
         scores = self.scores,
         messages = self.messages,
+        pjt_data = self.serialized_projectiles,
     }
     self.server:sendToAll("server_tick", payload)
 end
@@ -261,9 +260,9 @@ function Server:tick(dt)
     if self.tick_tock > self.tick_rate then
         self.ticks = self.ticks + 1
         self.tick_tock = self.tick_tock - self.tick_rate
+        self:serialize_projectiles(dt)
         self:broadcast_updates(dt)
         self:clear_updates(dt)
-        self:broadcast_projectiles(dt)
         self:clear_projectiles(dt)
     end
 end
@@ -282,6 +281,7 @@ function Server:clear_projectiles(_dt)
         self.projectiles[uuid] = nil
     end
     self.expired = {}
+    self.serialized_projectiles = {projectiles={}, expired={}}
 end
 
 
@@ -592,10 +592,7 @@ function Server:update_kur(dt)
                 cdir = dir,
                 spacing = 30,
             }
-            local pjt = Projectile(args)
-            self.projectiles[pjt.uuid] = pjt
-            self.world:add(pjt, pjt.x, pjt.y, pjt.w, pjt.h)
-            self:broadcast_event("created_projectile", pjt:serialized())
+            self:create_projectile(args)
 
             -- fire second fireball
             local angle2 = angle + math.pi / 4
@@ -605,10 +602,7 @@ function Server:update_kur(dt)
             args.dx = n_dx2
             args.dy = n_dy2
 
-            local pjt2 = Projectile(args)
-            self.projectiles[pjt2.uuid] = pjt2
-            self.world:add(pjt2, pjt2.x, pjt2.y, pjt2.w, pjt2.h)
-            self:broadcast_event("created_projectile", pjt2:serialized())
+            self:create_projectile(args)
 
             -- fire third fireball
             local angle3 = angle - math.pi / 4
@@ -618,10 +612,7 @@ function Server:update_kur(dt)
             args.dx = n_dx3
             args.dy = n_dy3
 
-            local pjt3 = Projectile(args)
-            self.projectiles[pjt3.uuid] = pjt3
-            self.world:add(pjt3, pjt3.x, pjt3.y, pjt3.w, pjt3.h)
-            self:broadcast_event("created_projectile", pjt3:serialized())
+            self:create_projectile(args)
         end
     -- else
         -- pick random vector to use?
@@ -633,6 +624,13 @@ end
 function Server:send_msg(data)
     if not self.messages then self.messages = {} end
     table.insert(self.messages, data)
+end
+
+
+function Server:create_projectile(data)
+    local pjt = Projectile(data)
+    self.projectiles[pjt.uuid] = pjt
+    self.world:add(pjt, pjt.x, pjt.y, pjt.w, pjt.h)
 end
 
 

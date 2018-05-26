@@ -3,7 +3,7 @@ local console = require("lib.console")
 local User = {}
 User.__index = User
 
-local AUTO_PROJECTILE_DELAY = 0.00
+local AUTO_PROJECTILE_DELAY = 0.20
 
 local function init(_self, payload)
     local m0_x, m0_y = 0, 0
@@ -92,29 +92,32 @@ function User:update(dt)
 
     -- check if mouse is down and no button updates
     self.auto_projectile_timer = self.auto_projectile_timer + dt
-    if self.auto_projectile_timer > AUTO_PROJECTILE_DELAY and love.mouse.isDown(1, 2) then
+    local mouse_down = love.mouse.isDown(1, 2)
+    if (self.auto_projectile_timer > AUTO_PROJECTILE_DELAY and
+            (mouse_down or self.mouse_updates)) then
         -- don't do diff as we let this get big
         self.auto_projectile_timer = 0.0
-        if not (self.mouse_updates["1"] or self.mouse_updates["2"]) then
+        if (mouse_down and not (self.mouse_updates["1"]
+                    or self.mouse_updates["2"])) then
             if not self.mouse_updates then self.mouse_updates = {} end
             local mx, my = love.mouse.getPosition()
             self.mouse_updates["1"] = self:trigger_mouseaction(mx, my, nil)
         end
-    end
 
-    -- send projectiles
-    if self.mouse_updates then
-        for button, m_info in pairs(self.mouse_updates) do
-            -- TODO: reenable melee attacks
-            -- however, one button mouse works well for trackpads
-            if false and button == "1" then
-                self.client:melee_attack(button, m_info)
-            elseif button == "1" or button == "2" then
-                m_info.spell_name = self.player.spell.name
-                self.client:create_projectile(m_info)
+        -- send projectiles
+        if self.mouse_updates then
+            for button, m_info in pairs(self.mouse_updates) do
+                -- TODO: reenable melee attacks
+                -- however, one button mouse works well for trackpads
+                if false and button == "1" then
+                    self.client:melee_attack(button, m_info)
+                elseif button == "1" or button == "2" then
+                    m_info.spell_name = self.player.spell.name
+                    self.client:create_projectile(m_info)
+                end
             end
+            self.mouse_updates = {}
         end
-        self.mouse_updates = {}
     end
 end
 

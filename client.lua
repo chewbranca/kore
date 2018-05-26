@@ -71,22 +71,6 @@ local function init(_Client, host, port)
         layer.projectiles[data.uuid] = pjt
     end)
 
-    client:on("updated_projectiles", function(data)
-        for uuid, spjt in pairs(data.projectiles) do
-            local pjt = self.projectiles[uuid]
-            if pjt then
-                pjt:update_projectile(spjt)
-            else
-                log("[ERROR] UPDATE_PROJECTILES MISSING PJT FOR %s", spjt.uuid)
-            end
-        end
-        local layer = lfg.map.layers["KoreProjectiles"]
-        for uuid, _spjt in pairs(data.expired) do
-            self.projectiles[uuid] = nil
-            layer.projectiles[uuid] = nil
-        end
-    end)
-
     client:on("create_player_nack", function(data)
         error(data.error)
     end)
@@ -120,6 +104,21 @@ local function init(_Client, host, port)
                 player:update_player(update, data.tick)
             end
         end
+
+        for uuid, spjt in pairs(data.pjt_data.projectiles) do
+            local pjt = self.projectiles[uuid]
+            if pjt then
+                pjt:update_projectile(spjt)
+            else
+                pjt = self:created_projectile(spjt)
+            end
+        end
+        local layer = lfg.map.layers["KoreProjectiles"]
+        for uuid, _spjt in pairs(data.pjt_data.expired) do
+            self.projectiles[uuid] = nil
+            layer.projectiles[uuid] = nil
+        end
+
         for puid, hit in pairs(data.hits) do
             if self.players[puid] then
                 local player = assert(self.players[puid])
@@ -225,6 +224,22 @@ end
 function Client:send_msg(msg)
     local payload = {msg=msg, clid=self.client.clid}
     self.client:send("send_msg", payload)
+end
+
+
+function Client:created_projectile(data, skip_world)
+    assert(data.uuid)
+    local pjt = Projectile(data)
+
+    if not skip_world then
+        local layer = lfg.map.layers["KoreProjectiles"]
+        self.projectiles[data.uuid] = pjt
+        layer.projectiles[data.uuid] = pjt
+
+        self.projectiles[pjt.uuid] = pjt
+    end
+
+    return pjt
 end
 
 
