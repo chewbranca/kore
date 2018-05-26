@@ -111,6 +111,10 @@ local function init(_Server, args)
             client:send("create_player_ack", {req_id=data.req_id,
                 player=player:serialized()})
             self:announce_players()
+            local msg_payload= {
+                msg = string.format("Player %s connected", player:full_name())
+            }
+            self:send_msg(msg_payload)
         end
     end)
 
@@ -133,6 +137,10 @@ local function init(_Server, args)
             local player = assert(self.players[client.clid])
             self.disconnected_players[player.uuid] = true
             self:remove_player(player, client)
+            local msg_payload= {
+                msg = string.format("Player %s disconnected", player:full_name())
+            }
+            self:send_msg(msg_payload)
         -- else: client did not fully connect
         end
     end)
