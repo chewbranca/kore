@@ -243,11 +243,13 @@ function Player:respawn()
 end
 
 
-function Player:full_name()
+function Player:full_name(truncate_at)
+    truncate_at = truncate_at or 6
     if self.type == "Kur" then
         return "Kur"
     else
-        return string.format("%s<%s>", self.name, self.uuid)
+        local tuuid = string.sub(self.uuid, 1, truncate_at)
+        return string.format("%s<%s>", self.name, tuuid)
     end
 end
 
