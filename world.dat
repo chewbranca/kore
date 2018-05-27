@@ -132,3 +132,30 @@ Effect{
     row_types = {"fire", "ice"},
 }
 
+Effect{
+    name = "Heal",
+    sprite = "art_src/spells/heal.png",
+    animation = "art_src/animation_defs/powers/heal.txt",
+    row_types = {"nature"},
+}
+
+Effect{
+    name = "Spark Red",
+    sprite = "art_src/spells/spark_red.png",
+    animation = "art_src/animation_defs/powers/spark_red.txt",
+    row_types = {"uno", "dos"},
+}
+
+Effect{
+    name = "Spark Orange",
+    sprite = "art_src/spells/spark_orange.png",
+    animation = "art_src/animation_defs/powers/spark_orange.txt",
+    row_types = {"uno", "dos"},
+}
+
+Effect{
+    name = "Spark Blue",
+    sprite = "art_src/spells/spark_blue.png",
+    animation = "art_src/animation_defs/powers/spark_blue.txt",
+    row_types = {"uno", "dos"},
+}

@@ -114,6 +114,7 @@ function User:update(dt)
                 elseif button == "1" or button == "2" then
                     m_info.spell_name = self.player.spell.name
                     self.client:create_projectile(m_info)
+                    self.player:cast_spell(m_info)
                 end
             end
             self.mouse_updates = {}

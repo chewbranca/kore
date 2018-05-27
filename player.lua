@@ -32,6 +32,8 @@ local function init(_self, args)
     local spell = assert(lfg.get_spell(spell_name))
     local pjt_impact = assert(lfg.get_effect("Quake"))
     local pjt_impact_type = "fire"
+    local pjt_cast = assert(lfg.get_effect("Spark Blue"))
+    local pjt_cast_type = "uno"
     local uuid = args.uuid or lume.uuid()
     local name = args.name or string.format("FOO: %s", uuid)
     local cdir = args.cdir or DEFAULT_DIR
@@ -72,6 +74,10 @@ local function init(_self, args)
         pjt_impact_type = pjt_impact_type,
         pjt_impact_am = assert(pjt_impact.ams[pjt_impact_type]["power"]),
         pjt_impact_timer = 0.0,
+        pjt_cast = pjt_cast,
+        pjt_cast_type = pjt_cast_type,
+        pjt_cast_am = assert(pjt_cast.ams[pjt_cast_type]["power"]),
+        pjt_cast_timer = 0.0,
     }
     setmetatable(self, Player)
     self.last_x, self.last_y = self.x, self.y
@@ -134,6 +140,11 @@ function Player:get_hit(action)
         self.respawn_loc = action.respawn_loc
     end
     self.pjt_impact_timer = 0.4
+end
+
+
+function Player:cast_spell(_data)
+    self.pjt_cast_timer = 0.4
 end
 
 
@@ -201,6 +212,10 @@ function Player:update(dt)
         self.pjt_impact_timer = self.pjt_impact_timer - dt
         self.pjt_impact_am:update(dt)
     end
+    if self.pjt_cast_timer > 0.0 then
+        self.pjt_cast_timer = self.pjt_cast_timer - dt
+        self.pjt_cast_am:update(dt)
+    end
 end
 
 
@@ -222,6 +237,12 @@ function Player:draw()
         pi_am:draw(pi.sprite, self.x, self.y, 0, self.sx, self.sy, self.ox, self.oy)
     end
     self.am:draw(self.char.sprite, self.x, self.y, 0, self.sx, self.sy, self.ox, self.oy)
+    if self.pjt_cast_timer > 0.0 then
+        local pc = self.pjt_cast
+        local pc_am = self.pjt_cast_am
+        -- TODO: fix offsets
+        pc_am:draw(pc.sprite, self.x, self.y, 0, self.sx, self.sy, self.ox, self.oy)
+    end
 end
 
 
