@@ -326,6 +326,8 @@ local function skip_collisions(item, other)
         else
             return default
         end
+    elseif is_projectile and other.layer and other.layer.properties["projectile-transparent"] then
+        return false
     -- collision with Kur
     elseif is_kur then
         local kur, player, projectile
