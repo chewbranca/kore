@@ -172,9 +172,9 @@ local function init(_Client, host, port)
             end
             table.sort(scores, function(a, b) return a.score > b.score end)
             self.user:update_scores(scores, data.tick)
-        end
-        for _i, msg_data in pairs(data.messages) do
-            self.user:print(msg_data.msg)
+            for _i, msg_data in pairs(data.messages) do
+                self.user:print(msg_data.msg)
+            end
         end
     end)
 
