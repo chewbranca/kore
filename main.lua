@@ -44,7 +44,7 @@ local function parse_args()
     parser:option("--character", "What character to use; one of [Minotaur, Zombie, Skeleton, Goblin, Antlion", nil)
     parser:option("--spell", "What spell to use; one of [Fireball, Lightning, Channel, Icicle", nil)
     parser:option("--name", "Are you really a user?", string.format("FOO{%s}", lume.uuid()))
-    parser:option("--map", "Map file to use", "map_arena.lua")
+    parser:option("--map", "Map file to use", "map_arena3.lua")
 
     return parser:parse()
 end
