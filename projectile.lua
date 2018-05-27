@@ -34,7 +34,7 @@ local function init(_self, p)
         ox = p.ox or spell.ox or 0,
         oy = p.oy or spell.oy or 0,
         age = p.age or 0,
-        max_age = p.max_age or 5.0,
+        max_age = p.max_age or 3.0,
         puid = p.puid,
         uuid = uuid,
         speed = speed,
