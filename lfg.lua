@@ -431,30 +431,30 @@ function lfg.init(conf, args)
     lfg.map:bump_init(lfg.world)
 
     -- ugly hack due to isometric bug with STI
-    local map_mod_name = string.gsub(lfg.conf.map_file, ".lua$", "")
-    local map_data = assert(require(map_mod_name))
-    local layer = nil
-    for _, l in pairs(map_data.layers) do
-        if l.name == "collision" then
-            layer = l
-            break
-        end
-    end
-    assert(layer)
-    assert(#layer.data == layer.width * layer.height)
+    --local map_mod_name = string.gsub(lfg.conf.map_file, ".lua$", "")
+    --local map_data = assert(require(map_mod_name))
+    --local layer = nil
+    --for _, l in pairs(map_data.layers) do
+    --    if l.name == "collision" then
+    --        layer = l
+    --        break
+    --    end
+    --end
+    --assert(layer)
+    --assert(#layer.data == layer.width * layer.height)
 
-    lfg.real_world = bump.newWorld(1)
+    --lfg.real_world = bump.newWorld(1)
 
-    for i, t in ipairs(layer.data) do
-        -- assume any tile (eg t ~= 0) is a collision tile
-        if t ~= 0 then
-            -- zero offset
-            local row = math.floor( i / layer.width)
-            local col = i % layer.width
-            local name = string.format("collision-%i", i)
-            lfg.real_world:add(name, row, col, 1, 1)
-        end
-    end
+    --for i, t in ipairs(layer.data) do
+    --    -- assume any tile (eg t ~= 0) is a collision tile
+    --    if t ~= 0 then
+    --        -- zero offset
+    --        local row = math.floor( i / layer.width)
+    --        local col = i % layer.width
+    --        local name = string.format("collision-%i", i)
+    --        lfg.real_world:add(name, row, col, 1, 1)
+    --    end
+    --end
 
     -- TODO: why doesn't this work?
     -- Still a bug somewhere in the isometric conversions
