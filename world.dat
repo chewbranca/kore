@@ -118,6 +118,12 @@ Spell{
     animation = "art_src/animation_defs/powers/icicle.txt"
 }
 
+Spell{
+    name = "Spear",
+    sprite = "art_src/spells/spear.png",
+    animation = "art_src/animation_defs/powers/spear.txt"
+}
+
 Effect{
     name = "Quake",
     sprite = "art_src/spells/quake.png",
