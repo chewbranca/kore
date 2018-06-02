@@ -6,7 +6,7 @@ Diablo meets Quake 3 Arena style pvp deathmatch game with a 2d isometric view us
 
 # Controls
 
-
+```
 w - move up
 a - move left
 d - move down
@@ -21,6 +21,7 @@ Ctrl-q  -  quit
 F1 - debug info
 F2 - full screen
 F4 - force respawn (if you get bugged)
+```
 
 Fireballs counteract with each other, so use them for both offense and defense!
 
