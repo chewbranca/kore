@@ -1,5 +1,30 @@
 # Kore
+
 Kore - The Rise of Persephone
+
+Diablo meets Quake 3 Arena style pvp deathmatch game with a 2d isometric view using the awesome artwork from [Flare Game](https://github.com/clintbellanger/flare-game).
+
+# Controls
+
+
+w - move up
+a - move left
+d - move down
+f - move right
+
+aim with mouse
+either mouse button - shoot fireball
+hold mouse button - max fireballs
+
+Ctrl-q  -  quit
+
+F1 - debug info
+F2 - full screen
+F4 - force respawn (if you get bugged)
+
+Fireballs counteract with each other, so use them for both offense and defense!
+
+Watch out for Kur...
 
 # Give it a Whirl
 
@@ -23,6 +48,17 @@ unzip master.zip
 
 or just click on
 [https://github.com/chewbranca/kore/archive/master.zip](https://github.com/chewbranca/kore/archive/master.zip)
+
+## Connect to default server: kore.chewbranca.com
+
+```
+cd $kore_dir     # wherever you unzipped or cloned Kore
+love . --name "foo123"
+
+# or on OSX
+
+/Applications/love.app/Contents/MacOS/love .  --name "foo123"
+```
 
 ## Run a Server
 
@@ -86,6 +122,7 @@ Available character options for the command line setting (choose one):
   * --character "Minotaur"
   * --character "Skeleton"
   * --character "Zombie"
+
 
 Available spell options for the command line setting (choose one):
 
