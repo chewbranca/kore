@@ -23,7 +23,7 @@ F2 - full screen
 F4 - force respawn (if you get bugged)
 ```
 
-Fireballs counteract with each other, so use them for both offense and defense!
+Fireballs counteract each other, so use them for both offense and defense!
 
 Watch out for Kur...
 
