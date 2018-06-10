@@ -22,9 +22,9 @@ end
 
 
 local function init(_Server, args)
-    assert(args.map)
-    assert(args.world)
-    local map = args.map
+    local map = assert(args.map)
+    local world = assert(args.world)
+    local port = args.port or Server.PORT
 
     -- load respawn points
     local respawn_points = {}
@@ -35,12 +35,18 @@ local function init(_Server, args)
         table.insert(respawn_points, {x=x, y=y})
     end
 
-    local world = args.world
-    local port = args.port or Server.PORT
+    local powerups
+    if map.layers["KorePowerups"] and map.layers["KorePowerups"].powerups then
+        powerups = map.layers["KorePowerups"].powerups
+        if powerups then
+            for _uuid, pup in pairs(powerups) do
+                world:add(pup, pup.x, pup.y, pup.w, pup.h)
+            end
+        end
+    end
+
     log("OPENING SERVER ON PORT: %s", ppsl(port))
     local server = sock.newServer("*", port)
-    --local world = bump.newWorld(1)
-    --local world = map.world
 
     local self = setmetatable({
             noclip = false,
@@ -50,6 +56,8 @@ local function init(_Server, args)
             disconnected_players = {},
             messages = {},
             players = {},
+            powerups = powerups,
+            powerup_updates = {},
             projectiles = {},
             player_hits = {},
             respawn_points = respawn_points,
@@ -62,6 +70,9 @@ local function init(_Server, args)
             ticks = 0,
             age = 0,
             uuid = lume.uuid(),
+            pup_timer = args.pup_timer or 0,
+            --pup_timer_max = args.pup_timer_max or 90,
+            pup_timer_max = args.pup_timer_max or 10,
         }, Server)
 
     if args.kur then
@@ -247,6 +258,7 @@ function Server:broadcast_updates(_dt)
         scores = self.scores,
         messages = self.messages,
         pjt_data = self.serialized_projectiles,
+        powerups = self.powerup_updates,
     }
     self.server:sendToAll("server_tick", payload)
 end
@@ -256,6 +268,7 @@ function Server:update(dt)
     self.server:update(dt)
     self:process_updates(dt)
     self:update_projectiles(dt)
+    self:update_powerups(dt)
     if self.kur then self:update_kur(dt) end
     self:tick(dt)
 end
@@ -281,6 +294,7 @@ function Server:clear_updates(_dt)
     self.player_hits = {}
     self.disconnected_players = {}
     self.messages = {}
+    self.powerup_updates = {}
 end
 
 
@@ -298,6 +312,7 @@ local function skip_collisions(item, other)
     local is_projectile = item.type == "projectile" or other.type == "projectile"
     local is_player = item.type == "player" or other.type == "player"
     local is_kur = item.type == "Kur" or other.type == "Kur"
+    local is_powerup = item.type == "powerup" or other.type == "powerup"
 
     -- projectile collided with player
     if is_projectile and is_player then
@@ -326,17 +341,26 @@ local function skip_collisions(item, other)
         else
             return default
         end
+    -- projectile flew over water
     elseif is_projectile and other.layer and other.layer.properties["projectile-transparent"] then
         return false
+    -- projectile collided with powerup
+    elseif is_projectile and is_powerup then
+        return false
+    -- player collided with powerup
+    elseif is_player and is_powerup then
+        return "cross"
     -- collision with Kur
     elseif is_kur then
-        local kur, player, projectile
+        local kur, player, projectile, powerup
         if item.type == "Kur" then
             kur = item
             if other.type == "player" then
                 player = other
             elseif other.type == "projectile" then
                 projectile = other
+            elseif other.type == "powerup" then
+                powerup = other
             else
                 return false
             end
@@ -347,6 +371,8 @@ local function skip_collisions(item, other)
                 player = item
             elseif item.type == "projectile" then
                 projectile = item
+            elseif item.type == "powerup" then
+                powerup = item
             else
                 return false
             end
@@ -360,6 +386,8 @@ local function skip_collisions(item, other)
             else
                 return default
             end
+        elseif powerup then
+            log("KUR COLLIDED WITH POWERUP!!")
         else
             -- Kur has no movement collision
             return false
@@ -397,12 +425,22 @@ function Server:process_updates(dt)
                 self.world:update(player, x, y)
                 player.x, player.y = x, y
             else
-                local actual_x, actual_y, _cols, _len = self.world:move(
+                local actual_x, actual_y, cols, len = self.world:move(
                     player, x, y, skip_collisions)
                 -- TODO: switch these updates to action model like with pjt's
                 -- then update by way of player:update_player(action)
                 player.x, player.y = actual_x, actual_y
                 update.x, update.y = actual_x, actual_y
+                if len > 0 then
+                    for _i, col in ipairs(cols) do
+                        if col.other.type == "powerup" then
+                            local powerup = col.other
+                            powerup:acquire(player)
+                            self.updates[puid] = player:serialized()
+                            self.powerup_updates[powerup.uuid] = powerup:serialized()
+                        end
+                    end
+                end
             end
         end
     end
@@ -421,6 +459,23 @@ function Server:process_updates(dt)
     end
 
     for puid, _val in pairs(alive) do self.dead_players[puid] = nil end
+end
+
+
+function Server:update_powerups(dt)
+    local respawn_powerups
+    self.pup_timer = self.pup_timer + dt
+    if self.pup_timer > self.pup_timer_max then
+        self.pup_timer = self.pup_timer - self.pup_timer_max
+        respawn_powerups = true
+    end
+    for uuid, pup in pairs(self.powerups) do
+        if respawn_powerups then
+            pup:make_alive()
+            self.powerup_updates[pup.uuid] = pup:serialized()
+        end
+        pup:update(dt)
+    end
 end
 
 
