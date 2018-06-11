@@ -53,8 +53,6 @@ local spells_ = {}
 local spell_names_ = {}
 local effects_ = {}
 local effect_names_ = {}
-local powerups_ = {}
-local powerup_names_ = {}
 
 -- This ordering on rows is based on the sprite sheets
 local D_W  = {x=-1, y=0}  -- row 1
@@ -277,8 +275,7 @@ end
 
 function lfg.get_character(c) return characters_[c] end
 function lfg.get_spell(s) return spells_[s] end
-function lfg.get_effect(e) return effects_[e] end
-function lfg.get_powerup(p) return powerups_[p] end
+function lfg.get_effect(s) return effects_[s] end
 
 
 function lfg.rand_char_name()
@@ -384,50 +381,6 @@ function lfg.Effect(s)
 end
 
 
-function lfg.Powerup(s)
-    assert(s.name, "Powerup name is present")
-    assert(s.sprite, "Powerup sprite is present")
-    assert(s.animation, "Powerup animation is present")
-    assert(s.row_types, "Powerup row types is present")
-
-    local powerup = {
-        ams = {},   -- animations
-        as = nil,   -- animation_set
-        grid = nil,
-        sprite = nil,
-        name = s.name,
-        row_types = s.row_types,
-    }
-
-    local sprite_path = s.sprite:match("^/") and s.sprite or (lfg.conf.flare_dir .. s.sprite)
-    powerup.sprite = assert(love.graphics.newImage(sprite_path))
-
-    local anim_path = lfg.conf.flare_dir .. s.animation
-    powerup.as = assert(lfg.load_and_process(anim_path))
-
-    powerup.grid = anim8.newGrid(powerup.as.w, powerup.as.h, powerup.sprite:getWidth(), powerup.sprite:getHeight())
-
-    for row, etype in ipairs(powerup.row_types) do
-        powerup.ams[etype] = {}
-        for name, am in pairs(powerup.as.animations) do
-            local begin = am.position + 1
-            local fin   = am.position + am.frames
-            local fdur = am.duration / am.frames
-            local frames = string.format("%s-%s", begin, fin)
-
-            --local onLoop = am.type
-            local am2 = assert(anim8.newAnimation(
-                powerup.grid(frames, row), fdur))
-            powerup.ams[etype][name] = am2
-        end
-    end
-
-    powerups_[powerup.name] = powerup
-    table.insert(powerup_names_, powerup.name)
-    return powerup
-end
-
-
 -- thanks to: https://gamedev.stackexchange.com/questions/49290/whats-the-best-way-of-transforming-a-2d-vector-into-the-closest-8-way-compass-d
 function lfg.angle_to_dir(angle)
     local n = #RDIRS
@@ -453,12 +406,10 @@ function lfg.init(conf, args)
     _G.Character = lfg.Character
     _G.Spell = lfg.Spell
     _G.Effect = lfg.Effect
-    _G.Powerup = lfg.Powerup
     love.filesystem.load(lfg.conf.world_file)()
     _G.Character = nil
     _G.Spell = nil
     _G.Effect = nil
-    _G.Powerup = nil
 
     lfg.map = assert(sti(lfg.conf.map_file))
 

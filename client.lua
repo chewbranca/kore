@@ -5,7 +5,6 @@ local lfg = require("lfg")
 
 local GamePlayer = require("player")
 local Projectile = require("projectile")
-local Powerup = require("powerup")
 
 local Client = {}
 Client.__index = Client
@@ -17,7 +16,6 @@ local function init(_Client, host, port)
     log("STARTING CLIENT CONNECTION.")
     local client = sock.newClient(host, port)
     local players = {}
-    local powerups = {}
     local projectiles = {}
     local projectile_ams = {}
     local reqs = {}
@@ -29,7 +27,6 @@ local function init(_Client, host, port)
     local self = setmetatable({
             client = client,
             players = players,
-            powerups = powerups,
             projectiles = projectiles,
             projectile_ams = projectile_ams,
             pjt_col = pjt_col,
@@ -164,20 +161,6 @@ local function init(_Client, host, port)
             -- else: disconnected player in last frame, never announced
             end
         end
-
-        local layer = lfg.map.layers["KorePowerups"]
-        for uuid, payload in pairs(data.powerups) do
-            local pup
-            if layer.powerups[uuid] then
-                pup = layer.powerups[uuid]
-                pup:update_powerup(payload, data.tick)
-            else
-                pup = Powerup(payload)
-                assert(pup.uuid == payload.uuid)
-                layer.powerups[uuid] = pup
-            end
-        end
-
         if self.user then
             local scores = {}
             for puid, score in pairs(data.scores) do
@@ -237,7 +220,7 @@ end
 -- TODO: client draw hack for projectile collision effects
 -- need a better place for the temporary animation objects to be stored
 function Client:draw()
-    for _uuid, pjt_am in pairs(self.projectile_ams) do
+    for uuid, pjt_am in pairs(self.projectile_ams) do
         pjt_am.am:draw(self.pjt_col.sprite, pjt_am.x, pjt_am.y, 0, 0.5, 0.5, 0, 0)
     end
 end

@@ -165,10 +165,3 @@ Effect{
     animation = "art_src/animation_defs/powers/spark_blue.txt",
     row_types = {"uno", "dos"},
 }
-
-Powerup{
-    name = "Health Pot",
-    sprite = "art_src/loot/hp_potion.png",
-    animation = "art_src/animation_defs/loot/hp_potion.txt",
-    row_types = {"uno"},
-}

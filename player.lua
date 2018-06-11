@@ -34,8 +34,6 @@ local function init(_self, args)
     local pjt_impact_type = "fire"
     local pjt_cast = assert(lfg.get_effect("Spark Blue"))
     local pjt_cast_type = "uno"
-    local pup_healed = assert(lfg.get_effect("Heal"))
-    local pup_healed_type = "nature"
     local uuid = args.uuid or lume.uuid()
     local name = args.name or string.format("FOO: %s", uuid)
     local cdir = args.cdir or DEFAULT_DIR
@@ -80,10 +78,6 @@ local function init(_self, args)
         pjt_cast_type = pjt_cast_type,
         pjt_cast_am = assert(pjt_cast.ams[pjt_cast_type]["power"]),
         pjt_cast_timer = 0.0,
-        pup_healed = pup_healed,
-        pup_healed_type = pup_healed_type,
-        pup_healed_am = assert(pup_healed.ams[pup_healed_type]["power"]),
-        pup_healed_timer = 0.0,
     }
     setmetatable(self, Player)
     self.last_x, self.last_y = self.x, self.y
@@ -150,26 +144,15 @@ end
 
 
 function Player:cast_spell(_data)
-    self.pjt_cast_timer = self.pjt_cast.as.animations["power"].duration
+    self.pjt_cast_timer = 0.4
 end
 
 
-function Player:was_healed(_data, _tick)
-    self.pup_healed_timer = self.pup_healed.as.animations["power"].duration
-end
-
-
-function Player:update_player(p, tick)
+function Player:update_player(p, _tick)
     if p.x  then self.x  = p.x end
     if p.y  then self.y  = p.y end
     if p.vx then self.vx = p.vx end
     if p.vy then self.vy = p.vy end
-    if p.hp then
-        if p.hp > self.hp then
-            self:was_healed(p, tick)
-        end
-        self.hp = p.hp
-    end
 
     -- TODO: better handle compound state/dir updates
     -- also do proper transitions, where animations can be delayed
@@ -233,10 +216,6 @@ function Player:update(dt)
         self.pjt_cast_timer = self.pjt_cast_timer - dt
         self.pjt_cast_am:update(dt)
     end
-    if self.pup_healed_timer > 0.0 then
-        self.pup_healed_timer = self.pup_healed_timer - dt
-        self.pup_healed_am:update(dt)
-    end
 end
 
 
@@ -263,12 +242,6 @@ function Player:draw()
         local pc_am = self.pjt_cast_am
         -- TODO: fix offsets
         pc_am:draw(pc.sprite, self.x, self.y, 0, self.sx, self.sy, self.ox, self.oy)
-    end
-    if self.pup_healed_timer > 0.0 then
-        local ph = self.pup_healed
-        local ph_am = self.pup_healed_am
-        -- TODO: fix offsets
-        ph_am:draw(ph.sprite, self.x, self.y, 0, self.sx, self.sy, self.ox, self.oy)
     end
 end
 
@@ -317,11 +290,6 @@ function Player:full_name(truncate_at)
         local tuuid = string.sub(self.uuid, 1, truncate_at)
         return string.format("%s<%s>", self.name, tuuid)
     end
-end
-
-
-function Player:inc_hp(_powerup)
-    if self.hp < self.starting_hp then self.hp = self.hp + 1 end
 end
 
 

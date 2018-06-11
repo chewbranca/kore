@@ -22,7 +22,6 @@ lfg = require("lfg")
 local GameClient = require("client")
 local GameServer = require("server")
 local GameUser = require("user")
-local Powerup = require("powerup")
 
 local client, map, server, world
 
@@ -80,25 +79,6 @@ function love.load()
     end
     pjt_layer.draw = function(self)
         for _uuid, pjt in pairs(self.projectiles) do pjt:draw() end
-    end
-
-    local pup_layer = lfg.map:addCustomLayer("KorePowerups", #lfg.map.layers + 1)
-    pup_layer.powerups = {}
-    pup_layer.update = function(self, dt)
-        for _i, pup in pairs(self.powerups) do pup:update(dt) end
-    end
-    pup_layer.draw = function(self)
-        for _uuid, pup in pairs(self.powerups) do pup:draw() end
-    end
-
-    if pargs.server and lfg.map.layers["health-pots"] then
-        for _, obj in pairs(lfg.map.layers["health-pots"].objects) do
-            local tl_x, tl_y = obj.x / 32, obj.y / 32
-            local x, y = lfg.map:convertTileToPixel(tl_x, tl_y)
-            local pup_type = Powerup.health_pot_name
-            local pup = Powerup({x=x, y=y, powerup_type=pup_type})
-            pup_layer.powerups[pup.uuid] = pup
-        end
     end
 
     if pargs.server then
