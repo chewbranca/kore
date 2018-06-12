@@ -1144,12 +1144,10 @@ function Map:convertPixelToTile(x, y)
 		local mapH    = self.height
 		local tileW   = self.tilewidth
 		local tileH   = self.tileheight
-		local tileW_H = tileW / 2
-		local tileH_H = tileH / 2
 		local offsetX = mapH * tileW / 2
 		return
-                       (y / tileH_H + (x - offsetX) / tileW_H) / 2,
-                       (y / tileH_H - (x - offsetX) / tileW_H) / 2
+			y / tileH + (x - offsetX) / tileW,
+			y / tileH - (x - offsetX) / tileW
 	elseif self.orientation == "staggered" then
 		local staggerX = self.staggeraxis  == "x"
 		local even     = self.staggerindex == "even"

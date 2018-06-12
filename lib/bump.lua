@@ -204,11 +204,11 @@ end
 ------------------------------------------
 
 local function grid_toWorld(cellSize, cx, cy)
-  return (cx - 1)*cellSize.x, (cy-1)*cellSize.y
+  return (cx - 1)*cellSize, (cy-1)*cellSize
 end
 
 local function grid_toCell(cellSize, x, y)
-  return floor(x / cellSize.x) + 1, floor(y / cellSize.y) + 1
+  return floor(x / cellSize) + 1, floor(y / cellSize) + 1
 end
 
 -- grid_traverse* functions are based on "A Fast Voxel Traversal Algorithm for Ray Tracing",
@@ -216,7 +216,6 @@ end
 -- It has been modified to include both cells when the ray "touches a grid corner",
 -- and with a different exit condition
 
--- cellSize scalar
 local function grid_traverse_initStep(cellSize, ct, t1, t2)
   local v = t2 - t1
   if     v > 0 then
@@ -231,8 +230,8 @@ end
 local function grid_traverse(cellSize, x1,y1,x2,y2, f)
   local cx1,cy1        = grid_toCell(cellSize, x1,y1)
   local cx2,cy2        = grid_toCell(cellSize, x2,y2)
-  local stepX, dx, tx  = grid_traverse_initStep(cellSize.x, cx1, x1, x2)
-  local stepY, dy, ty  = grid_traverse_initStep(cellSize.y, cy1, y1, y2)
+  local stepX, dx, tx  = grid_traverse_initStep(cellSize, cx1, x1, x2)
+  local stepY, dy, ty  = grid_traverse_initStep(cellSize, cy1, y1, y2)
   local cx,cy          = cx1,cy1
 
   f(cx, cy)
@@ -259,7 +258,7 @@ end
 
 local function grid_toCellRect(cellSize, x,y,w,h)
   local cx,cy = grid_toCell(cellSize, x, y)
-  local cr,cb = ceil((x+w) / cellSize.x), ceil((y+h) / cellSize.y)
+  local cr,cb = ceil((x+w) / cellSize), ceil((y+h) / cellSize)
   return cx, cy, cr - cx + 1, cb - cy + 1
 end
 
@@ -736,10 +735,8 @@ end
 -- Public library functions
 
 bump.newWorld = function(cellSize)
-  cellSize = cellSize or {x=64, y=64}
-  if type(cellSize) == "number" then cellSize = {x=cellSize, y=cellSize} end
-  assertIsPositiveNumber(cellSize.x, 'cellSize.x')
-  assertIsPositiveNumber(cellSize.y, 'cellSize.y')
+  cellSize = cellSize or 64
+  assertIsPositiveNumber(cellSize, 'cellSize')
   local world = setmetatable({
     cellSize       = cellSize,
     rects          = {},
