@@ -92,7 +92,7 @@ return {
       imageheight = 256,
       tileoffset = {
         x = 0,
-        y = 32
+        y = 96
       },
       grid = {
         orientation = "orthogonal",
@@ -188,7 +188,7 @@ return {
       imageheight = 512,
       tileoffset = {
         x = 0,
-        y = 16
+        y = 80
       },
       grid = {
         orientation = "orthogonal",

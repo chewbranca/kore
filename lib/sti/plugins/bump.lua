@@ -80,6 +80,8 @@ return {
 											type       = object.type,
 											x          = ((x-1) * map.tilewidth  + tile.offset.x + map.offsetx) + object.x,
 											y          = ((y-1) * map.tileheight + tile.offset.y + map.offsety) + object.y,
+											--x = 32 * (x-1) - 32 * (y-1) + 3200,
+											--y = 16 * (x-1) + 16 * (y-1),
 											width      = object.width,
 											height     = object.height,
 											layer      = layer,
@@ -94,15 +96,14 @@ return {
 
 
 							local t = {
+								x          = (x+1) * (map.tilewidth / 2) + tile.offset.x + map.offsetx,
+								y          = (y+1) * map.tileheight + tile.offset.y + map.offsety,
+
 								--x          = (x-1) * map.tilewidth  + tile.offset.x + map.offsetx,
 								--y          = (y-1) * map.tileheight + tile.offset.y + map.offsety,
-								x          = (x - y + 1) * (tile.width / 2) + tile.offset.x + map.width * tile.width / 2 - tile.width / 2,
-								--y          = (x + y - 1) * (tile.height / 2) + tile.offset.y,
-								y          = (x + y + 2) * 16,
 								--width      = tile.width,
-								--height     = tile.height,
-								width      = 32,
-								height     = 32,
+								width      = tile.width / 2,
+								height     = tile.height,
 								layer      = layer,
 								properties = tile.properties
 							}
