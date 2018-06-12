@@ -262,8 +262,8 @@ function User.print(_self, ...)
     console.print(...)
 end
 
-function User:x() return self.player.x end
-function User:y() return self.player.y end
+function User:x() return self.player:screen_x() end
+function User:y() return self.player:screen_y() end
 function User:ox() return self.player.ox end
 function User:oy() return self.player.oy end
 function User:w() return self.player.w end

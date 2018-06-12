@@ -225,8 +225,8 @@ function Player:draw()
         local max_bar_width = 100
         local bar_width = (self.hp / self.starting_hp) * max_bar_width
         love.graphics.setColor(255, 0, 0)
-        love.graphics.rectangle("fill", self.x, self.y - 45, bar_width, 10)
-        love.graphics.print(self.name, self.x + 10, self.y - 60)
+        love.graphics.rectangle("fill", self:screen_x(), self:screen_y() - 45, bar_width, 10)
+        love.graphics.print(self.name, self:screen_x() + 10, self:screen_y() - 60)
     end
     love.graphics.pop()
     love.graphics.setColor(255, 255, 255)
@@ -234,14 +234,14 @@ function Player:draw()
         local pi = self.pjt_impact
         local pi_am = self.pjt_impact_am
         -- TODO: fix offsets
-        pi_am:draw(pi.sprite, self.x, self.y, 0, self.sx, self.sy, self.ox, self.oy)
+        pi_am:draw(pi.sprite, self:screen_x(), self:screen_y(), 0, self.sx, self.sy, self.ox, self.oy)
     end
-    self.am:draw(self.char.sprite, self.x, self.y, 0, self.sx, self.sy, self.ox, self.oy)
+    self.am:draw(self.char.sprite, self:screen_x(), self:screen_y(), 0, self.sx, self.sy, self.ox, self.oy)
     if self.pjt_cast_timer > 0.0 then
         local pc = self.pjt_cast
         local pc_am = self.pjt_cast_am
         -- TODO: fix offsets
-        pc_am:draw(pc.sprite, self.x, self.y, 0, self.sx, self.sy, self.ox, self.oy)
+        pc_am:draw(pc.sprite, self:screen_x(), self:screen_y(), 0, self.sx, self.sy, self.ox, self.oy)
     end
 end
 
@@ -290,6 +290,18 @@ function Player:full_name(truncate_at)
         local tuuid = string.sub(self.uuid, 1, truncate_at)
         return string.format("%s<%s>", self.name, tuuid)
     end
+end
+
+
+function Player:screen_x()
+    -- TODO: remove dependence on global lfg_map
+    local map_px_width = _G.lfg_map.width * _G.lfg_map.tilewidth / 2
+    return self.x - self.y + map_px_width
+end
+
+
+function Player:screen_y()
+    return (self.x + self.y) / 2
 end
 
 

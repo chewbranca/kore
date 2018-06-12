@@ -61,6 +61,7 @@ function love.load()
 
     assert(lfg.init({map_file=pargs.map}, pargs))
     map = lfg.map
+    _G.lfg_map = lfg.map
     world = lfg.world
 
     local player_layer = lfg.map:addCustomLayer("KorePlayers", #lfg.map.layers + 1)

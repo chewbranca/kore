@@ -30,9 +30,7 @@ local function init(_Server, args)
     local respawn_points = {}
 
     for _, obj in pairs(map.layers["spawn-points"].objects) do
-        local tl_x, tl_y = obj.x / 32, obj.y / 32
-        local x, y = map:convertTileToPixel(tl_x, tl_y)
-        table.insert(respawn_points, {x=x, y=y})
+        table.insert(respawn_points, {x=obj.x, y=obj.y})
     end
 
     local world = args.world
@@ -397,10 +395,18 @@ function Server:process_updates(dt)
                 self.world:update(player, x, y)
                 player.x, player.y = x, y
             else
-                local actual_x, actual_y, _cols, _len = self.world:move(
+                local actual_x, actual_y, cols, len = self.world:move(
                     player, x, y, skip_collisions)
                 -- TODO: switch these updates to action model like with pjt's
                 -- then update by way of player:update_player(action)
+                if len > 0 then
+                    for _i, col in ipairs(cols) do
+                        if col.type == "slide" then
+                            actual_x, actual_y= col.slide.x, col.slide.y
+                        end
+                    end
+                end
+
                 player.x, player.y = actual_x, actual_y
                 update.x, update.y = actual_x, actual_y
             end
