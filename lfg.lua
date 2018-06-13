@@ -120,15 +120,16 @@ local RDIRS = {
     D_NE,
 }
 
+-- isometric dirs; switch to wasd = NWSE for map dirs
 local KEY_DIRS = {
-    up = {x=0, y=-1},
-    down = {x=0, y=1},
-    left = {x=-1, y=0},
-    right = {x=1, y=0},
-    w = {x=0, y=-1},
-    s = {x=0, y=1},
-    a = {x=-1, y=0},
-    d = {x=1, y=0},
+    up = D_NW,
+    down = D_SE,
+    left = D_SW,
+    right = D_NE,
+    w = D_NW,
+    s = D_SE,
+    a = D_SW,
+    d = D_NE,
 }
 
 local STATES = {
@@ -535,8 +536,8 @@ function lfg.get_key_dir()
 
     for key, dir in pairs(KEY_DIRS) do
         if love.keyboard.isDown(key) then
-            cdir.x = cdir.x + dir.x
-            cdir.y = cdir.y + dir.y
+            cdir.x = lume.clamp(cdir.x + dir.x, -1, 1)
+            cdir.y = lume.clamp(cdir.y + dir.y, -1, 1)
         end
     end
 
