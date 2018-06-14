@@ -56,7 +56,7 @@ end
 
 
 function Projectile:draw()
-    self.am:draw(self.spell.sprite, self.x, self.y, 0, 1, 1, self.ox, self.oy)
+    self.am:draw(self.spell.sprite, self:screen_x(), self:screen_y(), 0, 1, 1, self.ox, self.oy)
 end
 
 
@@ -98,6 +98,19 @@ function Projectile:update_projectile(p)
     self.x = p.x
     self.y = p.y
     if p.collision then self.collision = p.collision end
+end
+
+
+-- TODO: remove this duplication with Player:screen_x
+function Projectile:screen_x()
+    -- TODO: remove dependence on global lfg_map
+    local map_px_width = _G.lfg_map.width * _G.lfg_map.tilewidth / 2
+    return self.x - self.y + map_px_width
+end
+
+
+function Projectile:screen_y()
+    return (self.x + self.y) / 2
 end
 
 

@@ -132,8 +132,8 @@ local function init(_Client, host, port)
                     am = self.pjt_col_am:clone(),
                     am_uuid = am_uuid,
                     duration = 0.6,
-                    x = pjt.x,
-                    y = pjt.y,
+                    x = pjt:screen_x(),
+                    y = pjt:screen_y(),
                 }
                 self.projectile_ams[am_uuid] = payload
             end

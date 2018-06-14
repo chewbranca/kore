@@ -133,8 +133,8 @@ function User:draw()
     -- TODO: add toggle button for displaying these stats
     if self.debug then
         love.graphics.print("Current FPS: "..tostring(love.timer.getFPS()), 10, 10)
-        local tl_x, tl_y = lfg.map:convertPixelToTile(self:x(), self:y())
-        love.graphics.print(string.format("Current Pos: (%.2f, %.2f) <%.2f, %.2f>", self:x(), self:y(), tl_x, tl_y), 10, 30)
+        local tl_x, tl_y = lfg.map:convertPixelToTile(self:screen_x(), self:screen_y())
+        love.graphics.print(string.format("Current Pos: (%.2f, %.2f) <%.2f, %.2f>", self:screen_x(), self:screen_y(), tl_x, tl_y), 10, 30)
         love.graphics.print(string.format("Mouse Pos:   (%.2f, %.2f)", self.m_x, self.m_y), 10, 50)
         local deg = (math.deg(self.m_angle) + 360) % 360
         love.graphics.print(string.format("Angle[%.2f]: %.2f {%.2f} {[%i]}", self.m_distance, self.m_angle, math.deg(self.m_angle), deg), 10, 70)
@@ -190,8 +190,9 @@ function User:trigger_mouseaction(m_x, m_y, _button)
     local w_x = math.floor(love.graphics.getWidth() / 2)
     local w_y = math.floor(love.graphics.getHeight() / 2)
     local angle = lume.angle(w_x, w_y, m_x, m_y)
+    local r_angle = angle - math.pi / 4
     local distance = lume.distance(w_x, w_y, m_x, m_y)
-    local dx, dy = lume.vector(angle, distance)
+    local dx, dy = lume.vector(r_angle, distance)
     local n_dx = dx / distance
     local n_dy = dy / distance
     local dir = lfg.ndirs[lfg.angle_to_dir(angle)]
@@ -262,8 +263,10 @@ function User.print(_self, ...)
     console.print(...)
 end
 
-function User:x() return self.player:screen_x() end
-function User:y() return self.player:screen_y() end
+function User:x() return self.player.x end
+function User:y() return self.player.y end
+function User:screen_x() return self.player:screen_x() end
+function User:screen_y() return self.player:screen_y() end
 function User:ox() return self.player.ox end
 function User:oy() return self.player.oy end
 function User:w() return self.player.w end

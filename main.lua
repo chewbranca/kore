@@ -134,8 +134,8 @@ end
 
 function love.draw()
     if user and is_user_bootstrapped then
-        local px = user and user:x() or 0
-        local py = user and user:y() or 0
+        local px = user and user:screen_x() or 0
+        local py = user and user:screen_y() or 0
         local tx = math.max(0, math.floor(px - love.graphics.getWidth() / 2))
         local ty = math.max(0, math.floor(py - love.graphics.getHeight() / 2))
 
@@ -153,7 +153,7 @@ function love.draw()
             love.graphics.translate(-tx, -ty)
             if (user and user.debug) then
                 love.graphics.points(math.floor(px), math.floor(py))
-                love.graphics.rectangle("line", user:x() - user:ox(), user:y() - user:oy(), 128, 128)
+                love.graphics.rectangle("line", user:screen_x() - user:ox(), user:screen_y() - user:oy(), 128, 128)
             end
             client:draw()
         end
